@@ -13,6 +13,8 @@
 ### Notas:
 - Usar API do Google maps
 
+![alt text](https://github.com/TiagoLourinho/Robotics-Autonomous-Car/images/API_maps.png?raw=true)
+
 ## Bloco controlo
 
 ### Input:
