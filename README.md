@@ -26,6 +26,8 @@ The role of the rest of the group is considered as `slave`.
 ### Notas:
 - Usar API do Google maps
 
+![alt text](https://github.com/TiagoLourinho/Robotics-Autonomous-Car/blob/main/images/API_maps.png?raw=true)
+
 ## Bloco controlo
 
 ### Input:
