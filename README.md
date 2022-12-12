@@ -1,5 +1,18 @@
 # Robotics-Autonomous-Car Main Components
 
+## Goal
+This lab assignment aims at developing components for an autonomous car operating inside IST Alameda campus. 
+
+## Authors
+- Francisco Rodrigues
+- João Marafuz Gaspar
+- João Fonseca
+- Manuel Graça
+- Tiago `Ambrósio` Lourinho (Senior Engineer)
+- Tiago Ferreira
+
+The role of the rest of the group is considered as `slave`.
+
 ## Bloco planeamento trajetória
 
 ### Inputs: 
