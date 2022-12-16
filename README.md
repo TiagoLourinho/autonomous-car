@@ -1,4 +1,4 @@
-# Robotics-Autonomous-Car Main Components
+# Robotics 2nd lab asignment - Autonomous Car 
 
 ## Goal
 This lab assignment aims at developing components for an autonomous car operating inside IST Alameda campus. 
@@ -8,10 +8,14 @@ This lab assignment aims at developing components for an autonomous car operatin
 - João Marafuz Gaspar
 - João Fonseca
 - Manuel Graça
-- Tiago `Ambrósio` Lourinho (Senior Engineer)
 - Tiago Ferreira
+- Tiago Lourinho
 
-The role of the rest of the group is considered as `slave`.
+## Usage
+To draw the image, follow the suggested steps:
+
+1. Install the required libraries: `pip install -r requirements.txt`
+2. Run the program: `python3 source/main.py`
 
 ## Bloco planeamento trajetória
 
