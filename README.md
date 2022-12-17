@@ -12,8 +12,6 @@ This lab assignment aims at developing components for an autonomous car operatin
 - Tiago Lourinho
 
 ## Usage
-To draw the image, follow the suggested steps:
-
 1. Install the required libraries: `pip install -r requirements.txt`
 2. Run the program: `python3 source/main.py`
 
