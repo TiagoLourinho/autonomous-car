@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 
 from blocks import Map
 from constants import ORIGIN
-from pyproj import Transformer
 
 
 def main():
@@ -20,8 +19,7 @@ def main():
     # plt.show()
     
     # Please try 3857 epsg code used by Google Maps
-    transform = Transformer.from_crs("epsg:4326", "+proj=utm +zone=10 +ellps=WGS84", always_xy=True,)
-    xx, yy = transform.transform(points[:, 0], points[:, 1])
+    xx, yy = map.transform_coordinates(points)
     
     fig = plt.figure()
     plt.grid()

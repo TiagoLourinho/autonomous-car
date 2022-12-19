@@ -2,7 +2,9 @@ import googlemaps
 import numpy as np
 
 
+
 from constants import GMAPS_KEY
+from pyproj import Transformer
 
 
 class Map:
@@ -23,5 +25,7 @@ class Map:
 
     def transform_coordinates(self, points: np.array):
         """Transforms latitudes/longitudes (WGS 84) to cartesian coordinates"""
-
-        pass
+        # Please try 3857 epsg code used by Google Maps
+        transform = Transformer.from_crs("epsg:4326", "+proj=utm +zone=10 +ellps=WGS84", always_xy=True,)
+        xx, yy = transform.transform(points[:, 0], points[:, 1])
+        return xx, yy
