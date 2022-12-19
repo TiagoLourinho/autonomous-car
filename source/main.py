@@ -35,8 +35,8 @@ def update(n, state):
     state["artists"]["car_phi"] = axes.arrow(
         current_state[0] + length * np.cos(current_state[2]),
         current_state[1] + length * np.sin(current_state[2]),
-        length * np.cos(current_state[3]),
-        length * np.sin(current_state[3]),
+        length * np.cos(current_state[3]+current_state[2]),
+        length * np.sin(current_state[3]+current_state[2]),
         width=0.5,
         color="g",
     )
