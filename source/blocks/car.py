@@ -35,7 +35,7 @@ class Car:
             Linear velocity (meters per seconds)
 
         omega: float
-            Steering angle (radians)
+            Steering angular velocity (radians per second)
 
         time_step: float
             Time step to use in Euler method (seconds)

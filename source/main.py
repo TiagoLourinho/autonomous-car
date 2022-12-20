@@ -9,14 +9,14 @@ from constants import ORIGIN
 
 TIME_STEP = 0.1  # seconds
 LINEAR_VELOCITY = 10  # kilometer per hour
-STEERING_ANGLE = np.deg2rad(10)  # radians
+STEERING_VELOCITY = np.pi / 12  # radians per second
 
 
 def update(n, state):
     axes = state["artists"]["axes"]
 
     # Drive the car and get the result state
-    state["car"].drive(LINEAR_VELOCITY * 0.277777778, STEERING_ANGLE, TIME_STEP)
+    state["car"].drive(LINEAR_VELOCITY * 0.277777778, STEERING_VELOCITY, TIME_STEP)
     current_state = state["car"].get_current_state()
     length = state["car"].get_length()
 
@@ -35,8 +35,8 @@ def update(n, state):
     state["artists"]["car_phi"] = axes.arrow(
         current_state[0] + length * np.cos(current_state[2]),
         current_state[1] + length * np.sin(current_state[2]),
-        length * np.cos(current_state[3]+current_state[2]),
-        length * np.sin(current_state[3]+current_state[2]),
+        length * np.cos(current_state[3] + current_state[2]),
+        length * np.sin(current_state[3] + current_state[2]),
         width=0.5,
         color="g",
     )
