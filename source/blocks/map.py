@@ -10,8 +10,8 @@ class Map:
     """Path planning (using google maps API for now)"""
 
     def __init__(self) -> None:
-        self.__gmaps = googlemaps.Client(key=GMAPS_KEY)
-        self.__transformer = Transformer.from_crs(
+        self.gmaps = googlemaps.Client(key=GMAPS_KEY)
+        self.transformer = Transformer.from_crs(
             "epsg:4326",
             "+proj=utm +zone=10 +ellps=WGS84",
             always_xy=True,
@@ -39,13 +39,13 @@ class Map:
         path = np.array(
             [
                 [step["end_location"]["lat"], step["end_location"]["lng"]]
-                for step in self.__gmaps.directions(
+                for step in self.gmaps.directions(
                     start, end, mode="driving", alternatives=False, units="metric"
                 )[0]["legs"][0]["steps"]
             ]
         )
 
         # Transforms latitudes/longitudes (WGS 84) to cartesian coordinates
-        xx, yy = self.__transformer.transform(path[:, 0], path[:, 1])
+        xx, yy = self.transformer.transform(path[:, 0], path[:, 1])
 
         return np.array([[xx[i], yy[i]] for i in len(xx)])
