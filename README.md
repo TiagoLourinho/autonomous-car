@@ -68,3 +68,9 @@ This lab assignment aims at developing components for an autonomous car operatin
 - GPS devíamos tentar usar o do telemóvel para não estarmos dependentes do do stor
 - Comunicao e com porta série com o carro/GPS do stor
 - Tem de ser tido em conta o timing/sincronização da informação, não apenas nos sensores mas como em tudo ao resto para as diferentes partes baterem certo
+
+- [x] IPC client
+- [x] Planet display
+- [ ] Orbits display
+- [ ] Trajectory display
+- ...
