@@ -10,8 +10,8 @@ class Map:
     """Path planning (using google maps API for now)"""
 
     def __init__(self) -> None:
-        self.__gmaps = googlemaps.Client(key=GMAPS_KEY)
-        self.__transformer = Transformer.from_crs(
+        self.gmaps = googlemaps.Client(key=GMAPS_KEY)
+        self.transformer = Transformer.from_crs(
             "epsg:4326",
             "+proj=utm +zone=10 +ellps=WGS84",
             always_xy=True,
@@ -66,8 +66,8 @@ class Map:
 
         return np.array(
             [
-                np.array([*self.__transformer.transform(latitude, longitude)])
-                - np.array([*self.__transformer.transform(origin[0], origin[1])])
+                np.array([*self.transformer.transform(latitude, longitude)])
+                - np.array([*self.transformer.transform(origin[0], origin[1])])
             ]
         )
 
@@ -141,7 +141,7 @@ class Map:
         path = np.array(
             [
                 [step["end_location"]["lat"], step["end_location"]["lng"]]
-                for step in self.__gmaps.directions(
+                for step in self.gmaps.directions(
                     start,
                     end,
                     mode="driving",
@@ -164,17 +164,17 @@ class Map:
         temp = np.array(
             [
                 [step["location"]["latitude"], step["location"]["longitude"]]
-                for step in self.__gmaps.nearest_roads(new_path)
+                for step in self.gmaps.nearest_roads(new_path)
             ]
         )
         print("temp")
         print(temp)
         
 
-        origin_coord = self.__transformer.transform(start[0], start[1])
+        origin_coord = self.transformer.transform(start[0], start[1])
 
         # Transforms latitudes/longitudes (WGS 84) to cartesian coordinates
-        xx, yy = np.array([*self.__transformer.transform(temp[:, 0], temp[:, 1])])
+        xx, yy = np.array([*self.transformer.transform(temp[:, 0], temp[:, 1])])
         for i in range(len(xx)):
             xx[i] -= origin_coord[0]
         for i in range(len(yy)):

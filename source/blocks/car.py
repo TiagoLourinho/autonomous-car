@@ -16,14 +16,14 @@ class Car:
             Distance between the front and back wheels (meters)
         """
 
-        self.__state = np.zeros(4) if initial_position is None else initial_position
-        self.__L = L
+        self.state = np.zeros(4) if initial_position is None else initial_position
+        self.L = L
 
     def get_length(self) -> float:
-        return self.__L
+        return self.L
 
     def get_current_state(self) -> np.array:
-        return self.__state
+        return self.state
 
     def drive(self, v: float, omega: float, time_step: float):
         """Utilizes the model of the car to drive and returns the new position
@@ -44,12 +44,12 @@ class Car:
         # fmt: off
         model = np.array(
             [
-                [np.cos(self.__state[2]) * np.cos(self.__state[3]), 0], 
-                [np.sin(self.__state[2]) * np.cos(self.__state[3]), 0], 
-                [np.sin(self.__state[3]) / self.__L               , 0], 
+                [np.cos(self.state[2]) * np.cos(self.state[3]), 0], 
+                [np.sin(self.state[2]) * np.cos(self.state[3]), 0], 
+                [np.sin(self.state[3]) / self.L               , 0], 
                 [0                                                , 1]
             ]
         )
         # fmt: on
 
-        self.__state = self.__state + time_step * np.matmul(model, np.array([v, omega]))
+        self.state = self.state + time_step * np.matmul(model, np.array([v, omega]))
