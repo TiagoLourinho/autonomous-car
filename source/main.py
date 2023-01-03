@@ -60,7 +60,7 @@ def update_current_controls():
 
     global thread_shutdown
     while not thread_shutdown:
-        current_control = np.array()
+        current_control = get_controls(ekf.get_current_estimate())
 
 
 def send_controls(current_control):
