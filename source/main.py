@@ -1,74 +1,99 @@
+from threading import Thread, Lock
 import numpy as np
-import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+from time import sleep
 
-from blocks import Map, Car
-from constants import ORIGIN
+from blocks import EKF
 
-##### Hyperparameters #####
+OBJETIVE = np.array()  # Objetive position in lat/lon
+TIME_STEP = 0.1  # ms
 
-TIME_STEP = 0.1  # seconds
-LINEAR_VELOCITY = 10  # kilometer per hour
-STEERING_VELOCITY = np.pi / 12  # radians per second
+# Thread related
+lock = Lock()
+thread_shutdown = False
 
 
-def update(n, state):
-    axes = state["artists"]["axes"]
+new_sensor_data = False  # Signals new sensor data available
+ekf = EKF()  # Keeps and updates system state
+current_control = np.array()  # Keeps the current controllers
 
-    # Drive the car and get the result state
-    state["car"].drive(LINEAR_VELOCITY * 0.277777778, STEERING_VELOCITY, TIME_STEP)
-    current_state = state["car"].get_current_state()
-    length = state["car"].get_length()
 
-    # Update car position and orientation
-    state["artists"]["car_position"].set_data(current_state[0], current_state[1])
+def get_initial_position():
+    """Reads the sensors and returns an initial position guess (x, y)"""
 
-    state["artists"]["car_theta"] = axes.arrow(
-        current_state[0],
-        current_state[1],
-        2 * length * np.cos(current_state[2]),
-        2 * length * np.sin(current_state[2]),
-        width=0.5,
-        color="b",
-    )
+    return np.array()
 
-    state["artists"]["car_phi"] = axes.arrow(
-        current_state[0] + length * np.cos(current_state[2]),
-        current_state[1] + length * np.sin(current_state[2]),
-        length * np.cos(current_state[3] + current_state[2]),
-        length * np.sin(current_state[3] + current_state[2]),
-        width=0.5,
-        color="g",
-    )
 
-    return [
-        state["artists"]["car_position"],
-        state["artists"]["car_theta"],
-        state["artists"]["car_phi"],
-    ]
+def get_path(initial_position, objetive):
+    """Returns a list with the points (path) from `initial_position` to `objetive`"""
+
+    return np.array()
+
+
+def check_new_sensor_data():
+    """Checks for sensor data and updates EKF"""
+
+    global thread_shutdown
+    while not thread_shutdown:
+
+        if new_sensor_data:
+            new_sensor_data = False
+
+            ekf.update()
+
+
+def display_current_state(path):
+    """Displays the path and the current state"""
+
+    # Display initial path
+    plt.plot(path)
+
+    global thread_shutdown
+    while not thread_shutdown:
+
+        # Update gui with the car
+        plt.plot(ekf.get_current_estimate())
+
+
+def update_current_controls():
+    """Updates the current controls acordding the current state and desired path"""
+
+    global thread_shutdown
+    while not thread_shutdown:
+        current_control = np.array()
+
+
+def send_controls(current_control):
+    """Sends the current controls to the car and updates EKF"""
+
+    ekf.predict(current_control)
 
 
 def main():
-    fig = plt.figure()
-    axes = plt.axes(xlim=(-20, 20), ylim=(-20, 20))
-    axes.set_aspect("equal", "box")
+    initial_position = get_initial_position()
 
-    state = {"map": Map(), "car": Car(), "artists": dict()}
+    path = get_path(initial_position, OBJETIVE)
 
-    # Set initial state
-    state["artists"]["axes"] = axes
-    (state["artists"]["car_position"],) = axes.plot([], [], "ro")
-    state["artists"]["car_theta"] = None
-    state["artists"]["car_phi"] = None
+    threads = {
+        "sensor_thread": Thread(target=check_new_sensor_data),
+        "gui_thread": Thread(target=display_current_state, args=(path,)),
+        "controller_thread": Thread(target=update_current_controls),
+    }
 
-    anim = animation.FuncAnimation(
-        fig,
-        lambda n: update(n, state),
-        frames=None,
-        interval=TIME_STEP * 1000,
-        blit=True,
-    )
-    plt.show()
+    for t in threads:
+        t.start()
+
+    try:
+        while True:
+            send_controls(current_control)
+            sleep(TIME_STEP)
+
+    except KeyboardInterrupt:
+        thread_shutdown = True
+
+    finally:
+        for t in threads:
+            t.join()
 
 
 if __name__ == "__main__":

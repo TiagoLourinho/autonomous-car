@@ -1,8 +1,9 @@
 import numpy as np
+from threading import Lock
 
 
 class EKF:
-    """Extended Kalman Filter"""
+    """Thread safe Extended Kalman Filter"""
 
     def init(
         self,
@@ -50,23 +51,29 @@ class EKF:
         self.g = g
         self.h = h
 
+        self.lock = Lock()
+
     def predict(self, control: np.array) -> None:
         """Predict step"""
-
-        self.state = self.g(control, self.state)
-        self.cov = self.G @ self.cov @ self.G.T + self.R
+        with self.lock:
+            self.state = self.g(control, self.state)
+            self.cov = self.G @ self.cov @ self.G.T + self.R
 
     def update(self, measurements: np.array) -> None:
         """Update step"""
+        with self.lock:
 
-        kalman_gain = (
-            self.cov @ self.H.T @ np.linalg.inv(self.H @ self.cov @ self.H.T + self.Q)
-        )
+            kalman_gain = (
+                self.cov
+                @ self.H.T
+                @ np.linalg.inv(self.H @ self.cov @ self.H.T + self.Q)
+            )
 
-        self.state = self.state + kalman_gain * (measurements - self.h(self.state))
-        self.cov = (np.identity(like=self.H) - kalman_gain * self.H) @ self.cov
+            self.state = self.state + kalman_gain * (measurements - self.h(self.state))
+            self.cov = (np.identity(like=self.H) - kalman_gain * self.H) @ self.cov
 
     def get_current_estimate(self) -> tuple[np.array]:
         """Returns the current state estimate and estimate covariance"""
 
-        return self.state, self.cov
+        with self.lock:
+            return self.state, self.cov
