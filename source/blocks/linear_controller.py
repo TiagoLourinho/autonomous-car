@@ -51,7 +51,6 @@ class controller:
 
         )
 
-
     def following_trajectory(self,ref) -> np.array:
         """
             Gives trajectory followed by the model using this kind of Controller
@@ -62,9 +61,6 @@ class controller:
             Outputs:
                 -trajectory: a numpy array with dimensions 4xK (x,y,theta,phi) followed by the car model
         """
-
-
-
         trajectory = np.zeros((ref.shape[0]+1, ref.shape[1]))
         for k in range(ref.shape[1]-1):
             world_error = ref[:,k] - trajectory[:-1,k]
