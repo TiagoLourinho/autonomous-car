@@ -22,7 +22,7 @@ class controller:
         self.qsi = qsi
         self.w_n = w_n
         self.v_ref = v_ref/3.6 #m/s
-        self.w_ref = 2
+        self.w_ref = w_ref
         self.kv= 2*qsi*w_n
         self.ks= self.kv
         self.ki = (w_n**2 - w_ref**2)/abs(self.v_ref)
@@ -45,24 +45,28 @@ class controller:
                 ki value: {self.ki}
                 h value: {self.h}
                 L value: {self.L}
+                Closed Loop poles of the system {self.poles()}
 
             """
 
 
         )
 
-    def following_trajectory(self,ref) -> np.array:
+    def following_trajectory(self,ref: np.array,num_points: int) -> np.array:
         """
             Gives trajectory followed by the model using this kind of Controller
 
             Inputs: 
                 -ref: a numpy array with dimensions 3xK (x_ref,y_ref,theta_ref) where K is the number of points to compute
-            
+                -num_points : a integer that expresses the number of points of trajectory vector (time_simulation*h)
             Outputs:
                 -trajectory: a numpy array with dimensions 4xK (x,y,theta,phi) followed by the car model
         """
-        trajectory = np.zeros((ref.shape[0]+1, ref.shape[1]))
-        for k in range(ref.shape[1]-1):
+        if num_points != None: trajectory = np.zeros((ref.shape[0]+1, min(ref.shape[1],num_points)))
+        else: trajectory =  np.zeros((ref.shape[0]+1, ref.shape[1]))
+
+        #trajectory points affected by difference in h and shape
+        for k in range(trajectory.shape[1]-1):
             world_error = ref[:,k] - trajectory[:-1,k]
             bot_error = np.matmul(np.array([[np.cos(trajectory[2,k]), np.sin(trajectory[2,k]), 0 ], [-np.sin(trajectory[2,k]), np.cos(trajectory[2,k]), 0 ], [0 ,0 ,1 ]]),world_error)
             v = self.kv * bot_error[0]
@@ -78,26 +82,26 @@ class controller:
             Compute closed loop poles of the system
         """
         poles,_ = np.linalg.eig(np.array([[0, self.w_ref, 0], [-self.w_ref, 0, self.v_ref], [0, 0, 0]]) - np.matmul(np.array([[1 ,0 ], [0 ,0], [0, 1]]), np.array([[self.kv ,0 ,0],[0,self.ki,self.ks]])))
-        print(poles)
+        return poles
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt 
     from scipy import signal
-    x_ref = np.arange(0,100,0.01)
+    x_ref = np.arange(0,50,0.01)
 
     #Examples of trajectories
     y_ref_traj = [np.cos(0.02*x_ref),signal.square(2*np.pi*0.02*x_ref),np.zeros(x_ref.shape)+1]
-    
 
+    t_simulation = 10
     L = 2.2
     h = 0.01
     qsi = 1
     w_n = 10
-    v_ref = 36
-    w_ref = 2
+    v_ref = 36 #km/h
+    w_ref = 4
+    num_points = int(t_simulation/h)
     simulation = controller(qsi = qsi,w_n = w_n,v_ref=v_ref,w_ref = w_ref,h = h, L = L)
     simulation.print_parameters()
-    simulation.poles()
     for y_ref in y_ref_traj:
         teta_ref = np.zeros(y_ref.shape)
         for k in range((y_ref.shape[0])-1):
@@ -106,7 +110,7 @@ if __name__ == "__main__":
         Ref = np.array([ [x_ref],[y_ref],[teta_ref]])
         Ref = Ref.reshape(Ref.shape[0],Ref.shape[2])
 
-        trajectory = simulation.following_trajectory(ref=Ref)
+        trajectory = simulation.following_trajectory(ref=Ref,num_points= None)
         plt.figure()
         plt.xlabel("x axis caption") 
         plt.ylabel("y axis caption") 
