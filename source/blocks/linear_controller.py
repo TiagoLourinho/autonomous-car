@@ -1,5 +1,5 @@
 import numpy as np
-class controller:
+class Controller:
     """Linear controller for the steering wheel""" 
     def __init__(self,qsi: float,w_n: float,v_ref: float,w_ref: float,h: float,L: float):
         """
@@ -16,7 +16,7 @@ class controller:
         h: float
             Integration Step
         L: float
-            Integration Step
+            Car dimension
         """
 
         self.qsi = qsi
@@ -51,8 +51,28 @@ class controller:
 
 
         )
+    def following_trajectory(self,ref: np.array,position: np.array) -> np.array:
+        """
+            Computes next position giving the current position and the next point using the linear controller
 
-    def following_trajectory(self,ref: np.array,num_points: int) -> np.array:
+            Inputs: 
+                -ref: a numpy array with dimensions 3x1 (x_ref,y_ref,theta_ref) of planned trajectory
+                -position : an array with with dimensions 3x1 (x,y,theta) with estimated positions
+            Outputs:
+                -? : next position
+        """
+        world_error = ref-position
+        bot_error = np.matmul(np.array([[np.cos(position[2,1]), np.sin(position[2,1]), 0 ], [-np.sin(position[2,1]), np.cos(position[2,1]), 0 ], [0 ,0 ,1 ]]),world_error)
+        v = self.kv * bot_error[0]
+        ws = self.ki * bot_error[1] + self.ks * bot_error[2]
+        derivative = np.array([[np.cos(position[2,1]) ,0 ],[np.sin(position[2,1]), 0 ],[np.tan(position[3,1])/self.L, 0], [0, 1]])
+        position = position + self.h*np.matmul(derivative, np.array([v,ws]))
+        if abs(position[3,1]) > np.pi/8 :
+            position[3,1] = np.sign(position[3,1])* np.pi/8
+        return position
+    pass
+
+    def following_reference(self,ref: np.array,num_points: int= None) -> np.array:
         """
             Gives trajectory followed by the model using this kind of Controller
 
@@ -65,7 +85,7 @@ class controller:
         if num_points != None: trajectory = np.zeros((ref.shape[0]+1, min(ref.shape[1],num_points)))
         else: trajectory =  np.zeros((ref.shape[0]+1, ref.shape[1]))
 
-        #trajectory points affected by difference in h and shape
+
         for k in range(trajectory.shape[1]-1):
             world_error = ref[:,k] - trajectory[:-1,k]
             bot_error = np.matmul(np.array([[np.cos(trajectory[2,k]), np.sin(trajectory[2,k]), 0 ], [-np.sin(trajectory[2,k]), np.cos(trajectory[2,k]), 0 ], [0 ,0 ,1 ]]),world_error)
@@ -100,7 +120,7 @@ if __name__ == "__main__":
     v_ref = 36 #km/h
     w_ref = 4
     num_points = int(t_simulation/h)
-    simulation = controller(qsi = qsi,w_n = w_n,v_ref=v_ref,w_ref = w_ref,h = h, L = L)
+    simulation = Controller(qsi = qsi,w_n = w_n,v_ref=v_ref,w_ref = w_ref,h = h, L = L)
     simulation.print_parameters()
     for y_ref in y_ref_traj:
         teta_ref = np.zeros(y_ref.shape)
@@ -110,7 +130,7 @@ if __name__ == "__main__":
         Ref = np.array([ [x_ref],[y_ref],[teta_ref]])
         Ref = Ref.reshape(Ref.shape[0],Ref.shape[2])
 
-        trajectory = simulation.following_trajectory(ref=Ref,num_points= None)
+        trajectory = simulation.following_reference(ref=Ref,num_points= None)
         plt.figure()
         plt.xlabel("x axis caption") 
         plt.ylabel("y axis caption") 

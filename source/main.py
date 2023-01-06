@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from time import sleep
 
-from blocks import EKF
+from blocks import EKF,Controller
 
 OBJETIVE = np.array()  # Objetive position in lat/lon
 FREQUENCY = 100  # Hz
@@ -18,7 +18,8 @@ update_gui = False  # Signals if the car moved
 
 ekf = EKF()  # Keeps and updates system state
 
-
+controller = Controller(qsi = 1,w_n = 10,v_ref=36,w_ref = 4,h = 0.01, L = 2.2) #Control model for the steering wheel
+ 
 def get_initial_position():
     """Reads the sensors and returns an initial position guess (x, y)"""
 
@@ -59,18 +60,23 @@ def display_current_state(path):
                 plt.plot(ekf.get_current_estimate())
 
 
-def get_controls():
+def get_controls(path):
     """Updates the current controls acordding the current state and desired path"""
 
     with lock:
-        current_control = np.array()
+
+        #integrate the sensor data
+        path_point = None #A point in the path trajectory
+        current_position = None #Current position based on sensors
+        next_position = controller.following_trajectory(path_point,current_position)
+
         update_gui = True
-        ekf.predict(current_control)
+        ekf.predict(next_position) #current_control
 
 
 def main():
     initial_position = get_initial_position()
-
+    
     path = get_path(initial_position, OBJETIVE)
 
     threads = {
@@ -83,7 +89,7 @@ def main():
 
     try:
         while True:
-            get_controls()
+            get_controls(path)
             sleep(1 / FREQUENCY)
 
     except KeyboardInterrupt:
