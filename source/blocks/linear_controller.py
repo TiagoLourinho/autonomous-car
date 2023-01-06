@@ -53,13 +53,14 @@ class Controller:
         )
     def following_trajectory(self,ref: np.array,position: np.array) -> np.array:
         """
-            Computes next position giving the current position and the next point using the linear controller
+            Computes next position and control signal given the current position and the next point using the linear controller
 
             Inputs: 
                 -ref: a numpy array with dimensions 3x1 (x_ref,y_ref,theta_ref) of planned trajectory
                 -position : an array with with dimensions 3x1 (x,y,theta) with estimated positions
             Outputs:
-                -? : next position
+                -position : next position
+                -np.array([v,ws]): control signal
         """
         world_error = ref-position
         bot_error = np.matmul(np.array([[np.cos(position[2,1]), np.sin(position[2,1]), 0 ], [-np.sin(position[2,1]), np.cos(position[2,1]), 0 ], [0 ,0 ,1 ]]),world_error)
@@ -69,7 +70,7 @@ class Controller:
         position = position + self.h*np.matmul(derivative, np.array([v,ws]))
         if abs(position[3,1]) > np.pi/8 :
             position[3,1] = np.sign(position[3,1])* np.pi/8
-        return position
+        return position,np.array([v,ws])
     pass
 
     def following_reference(self,ref: np.array,num_points: int= None) -> np.array:

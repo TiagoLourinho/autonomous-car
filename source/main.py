@@ -68,10 +68,10 @@ def get_controls(path):
         #integrate the sensor data
         path_point = None #A point in the path trajectory
         current_position = None #Current position based on sensors
-        next_position = controller.following_trajectory(path_point,current_position)
+        next_position,current_control = controller.following_trajectory(path_point,current_position)
 
         update_gui = True
-        ekf.predict(next_position) #current_control
+        ekf.predict(current_control) #current_control
 
 
 def main():
