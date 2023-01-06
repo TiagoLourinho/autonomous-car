@@ -6,7 +6,7 @@ from time import sleep
 from blocks import EKF
 
 OBJETIVE = np.array()  # Objetive position in lat/lon
-TIME_STEP = 0.1  # ms
+FREQUENCY = 100  # Hz
 
 # Thread related
 lock = Lock()
@@ -14,8 +14,9 @@ thread_shutdown = False
 
 
 new_sensor_data = False  # Signals new sensor data available
+update_gui = False  # Signals if the car moved
+
 ekf = EKF()  # Keeps and updates system state
-current_control = np.array()  # Keeps the current controllers
 
 
 def get_initial_position():
@@ -51,22 +52,20 @@ def display_current_state(path):
     global thread_shutdown
     while not thread_shutdown:
 
-        # Update gui with the car
-        plt.plot(ekf.get_current_estimate())
+        with lock:
+            if update_gui:
+                update_gui = False
+                # Update gui with the car
+                plt.plot(ekf.get_current_estimate())
 
 
-def update_current_controls():
+def get_controls():
     """Updates the current controls acordding the current state and desired path"""
 
-    global thread_shutdown
-    while not thread_shutdown:
-        current_control = get_controls(ekf.get_current_estimate())
-
-
-def send_controls(current_control):
-    """Sends the current controls to the car and updates EKF"""
-
-    ekf.predict(current_control)
+    with lock:
+        current_control = np.array()
+        update_gui = True
+        ekf.predict(current_control)
 
 
 def main():
@@ -77,7 +76,6 @@ def main():
     threads = {
         "sensor_thread": Thread(target=check_new_sensor_data),
         "gui_thread": Thread(target=display_current_state, args=(path,)),
-        "controller_thread": Thread(target=update_current_controls),
     }
 
     for t in threads:
@@ -85,8 +83,8 @@ def main():
 
     try:
         while True:
-            send_controls(current_control)
-            sleep(TIME_STEP)
+            get_controls()
+            sleep(1 / FREQUENCY)
 
     except KeyboardInterrupt:
         thread_shutdown = True
