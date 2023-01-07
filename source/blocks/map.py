@@ -1,9 +1,10 @@
 import googlemaps
 import numpy as np
 
-from pyproj import Transformer
+from pyproj import Transformer, Proj
 from haversine import haversine
-from constants import GMAPS_KEY
+from constants import GMAPS_KEY, TOP_LEFT_CORNER, BOTTOM_RIGHT_CORNER, TOP_RIGHT_CORNER, BOTTOM_LEFT_CORNER, IMAGE_HEIGHT, IMAGE_WIDTH
+
 
 
 class Map:
@@ -16,6 +17,12 @@ class Map:
             "+proj=utm +zone=10 +ellps=WGS84",
             always_xy=True,
         )
+        self.top_left_coord = np.array([*self.transformer.transform(TOP_LEFT_CORNER[0], TOP_LEFT_CORNER[1])])
+        self.bottom_right_coord = np.array([*self.transformer.transform(BOTTOM_RIGHT_CORNER[0], BOTTOM_RIGHT_CORNER[1])])
+        self.top_right_coord = np.array([*self.transformer.transform(TOP_RIGHT_CORNER[0], TOP_RIGHT_CORNER[1])])
+        self.bottom_left_coord = np.array([*self.transformer.transform(BOTTOM_LEFT_CORNER[0], BOTTOM_LEFT_CORNER[1])])
+        self.scale_x = IMAGE_WIDTH / (np.linalg.norm(self.bottom_left_coord - self.bottom_right_coord))
+        self.scale_y = IMAGE_HEIGHT / (np.linalg.norm(self.top_left_coord - self.bottom_left_coord))
 
     def rotate_points(self, points: np.array, angle: float):
         """Rotates the points by `angle` radians
@@ -45,7 +52,7 @@ class Map:
 
         return np.array([rotation_matrix @ point for point in points])
 
-    def get_coordinates(self, latitude: float, longitude: float, origin: np.array):
+    def get_coordinates(self, latitude: float, longitude: float):
         """Transforms latitude and longitude to cartesian coordinates
 
         Parameters
@@ -63,13 +70,47 @@ class Map:
         np.array of shape (2, )
             Cartesian coordinates
         """
-
-        return np.array(
+        arr = np.array(
             [
                 np.array([*self.transformer.transform(latitude, longitude)])
-                - np.array([*self.transformer.transform(origin[0], origin[1])])
+                - self.bottom_left_coord
             ]
         )
+
+        # rotate the points by pi/2 radians and reflect them
+        arr = self.rotate_points(arr, np.pi / 2)
+        arr = self.reflect_points(arr)
+
+        # apperrently the pyproj library is rotating the points by around pi/60 radians
+        arr = self.rotate_points(arr, np.pi / 60)
+
+
+        return arr * np.array([self.scale_x, self.scale_y])
+
+    def reflect_points(self, points: np.array):
+        """Reflects the points
+
+        Parameters
+        ----------
+
+        points: np.array of shape (N, 2)
+            Points to be reflected
+
+        Returns
+        -------
+
+        np.array of shape (N, 2)
+            Reflected points
+        """
+
+        reflection_matrix = np.array(
+            [
+                [1, 0],
+                [0, -1],
+            ]
+        )
+
+        return np.array([reflection_matrix @ point for point in points])
 
     def get_points(self, start: np.array, end: np.array):
         """Gets the points between `start` and `end` point
@@ -99,7 +140,6 @@ class Map:
 
         # Set the number of points you want to generate along the line
         num_points = int(distance * 200)
-        print(f"Number of points: {num_points}")
 
         # Calculate the latitude and longitude increments for each point
         lat_inc = (end[0] - start[0]) / (num_points - 1)
@@ -150,34 +190,26 @@ class Map:
                 )[0]["legs"][0]["steps"]
             ]
         )
-        print("path")
         path = np.insert(path, 0, start, axis=0)
-        print(path)
         new_path = []
         for i in range(len(path) - 1):
             new_path.extend(self.get_points(path[i], path[i + 1]))
             
-        print("new_path")
         new_path = np.array(new_path)
 
-
+        # Gets points on the road
         temp = np.array(
             [
                 [step["location"]["latitude"], step["location"]["longitude"]]
                 for step in self.gmaps.nearest_roads(new_path)
             ]
         )
-        print("temp")
-        print(temp)
         
 
         origin_coord = self.transformer.transform(start[0], start[1])
 
-        # Transforms latitudes/longitudes (WGS 84) to cartesian coordinates
-        xx, yy = np.array([*self.transformer.transform(temp[:, 0], temp[:, 1])])
-        for i in range(len(xx)):
-            xx[i] -= origin_coord[0]
-        for i in range(len(yy)):
-            yy[i] -= origin_coord[1]
+        coords = np.zeros((len(temp), 2))
+        for i in range(len(temp)):
+            coords[i] = self.get_coordinates(temp[i][0], temp[i][1])       
 
-        return self.rotate_points(np.array([[xx[i], yy[i]] for i in range(len(xx))]), -np.pi / 80)
+        return coords

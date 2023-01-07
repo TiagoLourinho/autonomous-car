@@ -2,37 +2,37 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from blocks import Map, Car
-from constants import ORIGIN
+from constants import ORIGIN, TOP_LEFT_CORNER, TOP_RIGHT_CORNER, BOTTOM_LEFT_CORNER, BOTTOM_RIGHT_CORNER
 
-SCALE = 11
+
 
 # Load the image file and convert it to a NumPy array
-image = plt.imread('images/map.png')
+image = plt.imread('images/map_improved.png')
 
-top_coord_image = np.array([38.737928, -9.141506])
-
-destination = np.array([38.737967, -9.138895])
+destination = np.array([38.736911, -9.139010])
 
 # Get the map
 map = Map()
-coords = SCALE * map.get_path(ORIGIN, destination)
-coords[:, [0, 1]] = -coords[:, [1, 0]]
-top_coord_image = SCALE * map.get_coordinates(top_coord_image[0], top_coord_image[1], ORIGIN)
-top_coord_image[0, [0, 1]] = -top_coord_image[0, [1, 0]]
-top_coord_image[0][0] -= 500
-top_coord_image[0][1] += 750
+coords = map.get_path(ORIGIN, destination)
 
-print(coords)
-print(top_coord_image)
+top_right_corner = map.get_coordinates(TOP_RIGHT_CORNER[0], TOP_RIGHT_CORNER[1])
+bottom_left_corner = map.get_coordinates(BOTTOM_LEFT_CORNER[0], BOTTOM_LEFT_CORNER[1])
+bottom_right_corner = map.get_coordinates(BOTTOM_RIGHT_CORNER[0], BOTTOM_RIGHT_CORNER[1])
+top_left_corner = map.get_coordinates(TOP_LEFT_CORNER[0], TOP_LEFT_CORNER[1])
+
+# Get the coordinates of the origin point
+origin = map.get_coordinates(ORIGIN[0], ORIGIN[1])
+
+# For debugging
+print(f"{round(top_left_corner[0][0])}, {round(top_left_corner[0][1])} ------ {round(top_right_corner[0][0])}, {round(top_right_corner[0][1])}")
+print(f"{round(bottom_left_corner[0][0])}, {round(bottom_left_corner[0][1])} ------ {round(bottom_right_corner[0][0])}, {round(bottom_right_corner[0][1])}")
 
 # Plot the point on the map
 fig, ax = plt.subplots()  # Create a figure and axes object
 
-# Set the x-axis and y-axis limits to include the origin point
-image_width = image.shape[1]  # Get the width of the image in pixels
-image_height = image.shape[0]  # Get the height of the image in pixels
-x_lims = [top_coord_image[0][0], top_coord_image[0][0] + image_width]
-y_lims = [-image_height + top_coord_image[0][1], top_coord_image[0][1]]
+# Set the x-axis and y-axis limits to center the origin point
+x_lims = [round(bottom_left_corner[0][0]) - round(origin[0][0]), round(top_right_corner[0][0]) - round(origin[0][0])]
+y_lims = [round(bottom_left_corner[0][1]) - round(origin[0][1]), round(top_right_corner[0][1]) - round(origin[0][1])]
 
 
 ax.set_xlim(x_lims[0], x_lims[1])
@@ -40,8 +40,8 @@ ax.set_ylim(y_lims[0], y_lims[1])
 ax.imshow(image, extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]])  # Plot the image on the axes
 
 for i in range(len(coords)):
-    x = coords[i][0]
-    y = coords[i][1]
+    x = coords[i][0] - round(origin[0][0])
+    y = coords[i][1] - round(origin[0][1])
     ax.plot(x, y, 'ro', markersize=3)  # Plot the path on the axes
 
 # Show the plot
