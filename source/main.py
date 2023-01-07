@@ -3,11 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from time import sleep
 
-from blocks import EKF, Map, Car
+from blocks import EKF, Map, Car, Controller
 from constants import ORIGIN, TOP_LEFT_CORNER, TOP_RIGHT_CORNER, BOTTOM_LEFT_CORNER, BOTTOM_RIGHT_CORNER
 
 OBJETIVE = np.array()  # Objetive position in lat/lon
-TIME_STEP = 0.1  # ms
+FREQUENCY = 100  # Hz
 
 # Thread related
 lock = Lock()
@@ -15,6 +15,8 @@ thread_shutdown = False
 
 
 new_sensor_data = False  # Signals new sensor data available
+update_gui = False  # Signals if the car moved
+
 ekf = EKF()  # Keeps and updates system state
 current_control = np.array()  # Keeps the current controllers
 map = Map()  # Keeps the map
@@ -39,7 +41,8 @@ y_lims = [round(bottom_left_corner[0][1]) - round(origin[0][1]), round(top_right
 ax.set_xlim(x_lims[0], x_lims[1])
 ax.set_ylim(y_lims[0], y_lims[1])
 
-
+controller = Controller(qsi = 1,w_n = 10,v_ref=36,w_ref = 4,h = 0.01, L = 2.2) #Control model for the steering wheel
+ 
 def get_initial_position():
     """Reads the sensors and returns an initial position guess (x, y)"""
 
@@ -77,33 +80,35 @@ def display_current_state(path):
     global thread_shutdown
     while not thread_shutdown:
 
-        # Update gui with the car
-        ax.plot(ekf.get_current_estimate(), 'bo', markersize=5)  # Plot the car on the axes
+        with lock:
+            if update_gui:
+                update_gui = False
+                # Update gui with the car
+                plt.plot(ekf.get_current_estimate(), 'bo', markersize=5)  # Plot the car on the axes)
 
 
-def update_current_controls():
+def get_controls(path):
     """Updates the current controls acordding the current state and desired path"""
 
-    global thread_shutdown
-    while not thread_shutdown:
-        current_control = get_controls(ekf.get_current_estimate())
+    with lock:
 
+        #integrate the sensor data
+        path_point = None #A point in the path trajectory
+        current_position = None #Current position based on sensors
+        next_position,current_control = controller.following_trajectory(path_point,current_position)
 
-def send_controls(current_control):
-    """Sends the current controls to the car and updates EKF"""
-
-    ekf.predict(current_control)
+        update_gui = True
+        ekf.predict(current_control) #current_control
 
 
 def main():
     initial_position = get_initial_position()
-
+    
     path = get_path(initial_position, OBJETIVE)
 
     threads = {
         "sensor_thread": Thread(target=check_new_sensor_data),
         "gui_thread": Thread(target=display_current_state, args=(path,)),
-        "controller_thread": Thread(target=update_current_controls),
     }
 
     for t in threads:
@@ -111,8 +116,8 @@ def main():
 
     try:
         while True:
-            send_controls(current_control)
-            sleep(TIME_STEP)
+            get_controls(path)
+            sleep(1 / FREQUENCY)
 
     except KeyboardInterrupt:
         thread_shutdown = True
