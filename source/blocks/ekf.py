@@ -143,14 +143,10 @@ class EKF:
             self.state = self.state + kalman_gain * (measurements - h(self.state))
             self.cov = (np.identity(like=H) - kalman_gain * H) @ self.cov
 
-    def get_current_estimate(self) -> dict:
+    def get_current_estimate(self) -> np.array:
         """Returns the current state estimate and estimate covariance"""
-
-        vars = ["x", "y", "theta", "phi", "dot_x", "dot_y", "dot_theta", "dot_phi"]
-
+        #vars = ["x", "y", "theta", "phi", "dot_x", "dot_y", "dot_theta", "dot_phi"]
         with self.lock:
-
-            current = {var: self.state[i] for i, var in enumerate(vars)}
-            current["covariance"] = self.cov
-
-            return current
+            #current = {var: self.state[i] for i, var in enumerate(vars)}
+            #current["covariance"] = self.cov
+            return self.state,self.cov

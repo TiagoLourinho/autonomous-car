@@ -109,9 +109,10 @@ def get_controls(path):
     with lock:
 
         #integrate the sensor data
-        path_point = None #A point in the path trajectory
-        current_position = None #Current position based on sensors
-        next_position,current_control = controller.following_trajectory(path_point,current_position)
+        path_point = None #A point in the path trajectory, 
+        current_position, _ = ekf.get_current_estimate()
+        current_position = current_position[:4] #x,y,teta
+        _ ,current_control = controller.following_trajectory(path_point,current_position)
 
         update_gui = True
         ekf.predict(current_control) #current_control
