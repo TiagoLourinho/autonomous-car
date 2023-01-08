@@ -8,7 +8,7 @@ class EKF:
     To simplify the implementation the EKF parameters are static (specific to the implementation of the problem)
     """
 
-    def init(self, car_L: float, predict_frequency: float):
+    def init(self, initial_estimate: np.array, car_L: float, predict_frequency: float):
         """
         For more info, see here: https://youtu.be/E-6paM_Iwfc?t=3622
         This one also helps (different connotation): https://www.kalmanfilter.net/multiSummary.html
@@ -17,7 +17,7 @@ class EKF:
         self.car_L = car_L
         self.time_step = 1 / predict_frequency
 
-        self.state = np.zeros(shape=(8,))
+        self.state = initial_estimate
         self.cov = np.zeros(shape=(8, 8))
 
         self.lock = Lock()
@@ -113,7 +113,31 @@ class EKF:
                     ]
                 )
             elif sensor.lower() == "imu":
-                pass
+                A = np.array(
+                    [
+                        [0, 0, 0, 0, 1, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 1, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 1, 0],
+                    ]
+                )
+
+                H = np.array(
+                    [
+                        [0, 0, 0, 0, 1, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 1, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 1, 0],
+                    ]
+                )
+
+                h = lambda state: A @ state
+
+                Q = np.array(
+                    [
+                        [0, 0, 0],
+                        [0, 0, 0],
+                        [0, 0, 0],
+                    ]
+                )
 
             kalman_gain = self.cov @ H.T @ np.linalg.inv(H @ self.cov @ H.T + Q)
             self.state = self.state + kalman_gain * (measurements - h(self.state))
