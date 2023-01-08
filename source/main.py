@@ -1,10 +1,12 @@
-from threading import Thread, Lock
-import numpy as np
-import matplotlib.pyplot as plt
+import time
+from threading import Lock, Thread
 from time import sleep
 
-from blocks import EKF, Map, Car, Controller
-from constants import ORIGIN, TOP_LEFT_CORNER, TOP_RIGHT_CORNER, BOTTOM_LEFT_CORNER, BOTTOM_RIGHT_CORNER
+import matplotlib.pyplot as plt
+import numpy as np
+from blocks import EKF, Car, Controller, Map, Sensors
+from constants import (BOTTOM_LEFT_CORNER, BOTTOM_RIGHT_CORNER, ORIGIN,
+                       TOP_LEFT_CORNER, TOP_RIGHT_CORNER)
 
 OBJETIVE = np.array()  # Objetive position in lat/lon
 FREQUENCY = 100  # Hz
@@ -59,13 +61,27 @@ def check_new_sensor_data():
     """Checks for sensor data and updates EKF"""
 
     global thread_shutdown
+    
+    sensors = Sensors()
+    # Because in simulation there's always data available, let's
+    # define a limit to how frequently we can poll
+    gps_poll_freq = 1
+    imu_poll_freq = 0.01
+    last_gps_poll = 0
+    last_imu_poll = 0
+    
     while not thread_shutdown:
-
-        if new_sensor_data:
-            new_sensor_data = False
-
-            ekf.update()
-
+        sensors.acquire()
+        # FIXME: Use some data instead of 0's
+        sensors.update_world_view(0, np.array((0.0, 0.0)), np.array((0.0, 0.0)), np.array((0.0, 0.0)))
+        pos = sensors.get_GPS_position()
+        velocities = sensors.get_IMU_data()
+        if pos is not None and time.time() - last_gps_poll >= gps_poll_freq:
+            ekf.update(pos, "gps")
+            last_gps_poll = time.time()
+        if velocities is not None and time.time() - last_imu_poll >= imu_poll_freq:
+            ekf.update(velocities, "imu")
+            last_imu_poll = time.time()
 
 def display_current_state(path):
     """Displays the path and the current state"""
