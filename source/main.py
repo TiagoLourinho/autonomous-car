@@ -24,7 +24,7 @@ map = Map()
 # Load the image file and convert it to a NumPy array
 image = plt.imread("images/map_improved.png")
 
-OBJETIVE = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
+OBJECTIVE = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
 
 # Get the map's corner coordinates
 top_right_corner = map.get_coordinates(*TOP_RIGHT_CORNER)
@@ -51,21 +51,7 @@ controller = Controller(
 )  # Control model for the steering wheel
 
 
-def get_initial_position():
-    """Reads the sensors and returns an initial position guess (x, y)"""
-
-    return ORIGIN
-
-
-def get_path(initial_position, objective):
-    """Returns a list with the points (path) from `initial_position` to `objetive`"""
-    coords = map.get_path(
-        initial_position, objective
-    )  # returns coordinates with (0, 0) being the bottom left corner of the map
-    return coords
-
-
-def check_new_sensor_data():
+def sensor_thread():
     """Checks for sensor data and updates EKF"""
 
     global thread_shutdown
@@ -96,17 +82,17 @@ def check_new_sensor_data():
 
 
 def update_plot(n, state):
-    """Updates the plot"""   
+    """Updates the plot"""
 
     axes = state["artists"]["axes"]
 
     # Drive the car and get the result state
     position = ekf.get_current_state()[:3]
 
-    print(f"Position: {position}")
-
     # Update car position and orientation
-    state["artists"]["car_position"].set_data(position[0], position[1])
+    state["artists"]["car_position"].set_data(
+        position[0] - round(origin[0]), position[1] - round(origin[1])
+    )
 
     state["artists"]["car_theta"] = axes.arrow(
         position[0] - round(origin[0]),
@@ -127,7 +113,7 @@ def update_plot(n, state):
 
 def display_current_state(path):
     """Displays the path and the current state"""
-    state = {"map": map, "car": Car(), "artists": dict()}
+    state = {"artists": dict()}
 
     # Plot the point on the map
     fig, ax = plt.subplots()  # Create a figure and axes object
@@ -154,7 +140,7 @@ def display_current_state(path):
         ax.plot(x, y, "ro", markersize=3)  # Plot the path on the axes
 
     state["artists"]["axes"] = ax
-    (state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=5)
+    (state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=10)
     state["artists"]["car_theta"] = None
 
     anim = animation.FuncAnimation(
@@ -169,47 +155,47 @@ def display_current_state(path):
     plt.show()
 
 
-def get_control(next_point):
+def control_thread(path):
     """Updates the current controls acordding the current state and desired path"""
     global update_gui
-    with lock:
+    global thread_shutdown
+    for point in map.orient_path(path):
+        while True:
 
-        # integrate the sensor data
+            pose = ekf.get_current_state()[:3]
+            current_control = controller.following_trajectory(point, pose)
+            ekf.predict(current_control)
 
-        pose = ekf.get_current_state()[:3]
+            with lock:
+                update_gui = True
 
-        current_control = controller.following_trajectory(next_point, pose)
-        ekf.predict(current_control)  # current_control
-        update_gui = True
+            sleep(1 / FREQUENCY)
+
+            position = ekf.get_current_state()[:2]
+
+            if np.linalg.norm(position - point[:2]) < 2:
+                break
+
+    thread_shutdown = True
 
 
 def main():
-    initial_position = get_initial_position()
+    initial_position = ORIGIN
 
-    path = get_path(initial_position, OBJETIVE)
+    path = map.get_path(
+        initial_position, OBJECTIVE
+    )  # returns coordinates with (0, 0) being the bottom left corner of the map
 
     threads = {
-        "sensor_thread": Thread(target=check_new_sensor_data),
+        "sensor_thread": Thread(target=sensor_thread),
+        "controller_thread": Thread(target=control_thread, args=(path,)),
     }
 
     for t in threads.values():
         t.start()
 
     try:
-        for point in map.orient_path(path):
-            while True:
-
-                get_control(point)
-
-                sleep(1 / FREQUENCY)
-
-                display_current_state(path)
-
-                position = ekf.get_current_state()[:2]
-
-                if np.linalg.norm(position - point[:2]) < 2:
-                    break
-
+        display_current_state(path)
     except Exception:
         print(traceback.format_exc())
         thread_shutdown = True
