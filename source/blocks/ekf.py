@@ -8,17 +8,19 @@ class EKF:
     To simplify the implementation the EKF parameters are static (specific to the implementation of the problem)
     """
 
-    def init(self, initial_estimate: np.array, car_L: float, predict_frequency: float):
+    def __init__(self, initial_estimate: np.array, predict_frequency: float):
         """
         For more info, see here: https://youtu.be/E-6paM_Iwfc?t=3622
         This one also helps (different connotation): https://www.kalmanfilter.net/multiSummary.html
         """
 
-        self.car_L = car_L
+        self.car_L = 2.46
         self.time_step = 1 / predict_frequency
 
-        self.state = initial_estimate
-        self.cov = np.zeros(shape=(8, 8))
+        self.state = np.zeros(shape=(8,))
+        self.state[:2] = initial_estimate
+
+        self.cov = np.identity(8)
 
         self.lock = Lock()
 
@@ -108,8 +110,8 @@ class EKF:
 
                 Q = np.array(
                     [
-                        [0, 0],
-                        [0, 0],
+                        [1, 0],
+                        [0, 1],
                     ]
                 )
             elif sensor.lower() == "imu":
@@ -133,20 +135,18 @@ class EKF:
 
                 Q = np.array(
                     [
-                        [0, 0, 0],
-                        [0, 0, 0],
-                        [0, 0, 0],
+                        [1, 0, 0],
+                        [0, 1, 0],
+                        [0, 0, 1],
                     ]
                 )
 
             kalman_gain = self.cov @ H.T @ np.linalg.inv(H @ self.cov @ H.T + Q)
-            self.state = self.state + kalman_gain * (measurements - h(self.state))
-            self.cov = (np.identity(like=H) - kalman_gain * H) @ self.cov
+            self.state = self.state + kalman_gain @ (measurements - h(self.state))
+            self.cov = (np.identity(8) - kalman_gain @ H) @ self.cov
 
-    def get_current_estimate(self) -> np.array:
-        """Returns the current state estimate and estimate covariance"""
-        #vars = ["x", "y", "theta", "phi", "dot_x", "dot_y", "dot_theta", "dot_phi"]
+    def get_current_state(self) -> np.array:
+        """Returns the current state estimate"""
         with self.lock:
-            #current = {var: self.state[i] for i, var in enumerate(vars)}
-            #current["covariance"] = self.cov
-            return self.state,self.cov
+
+            return self.state

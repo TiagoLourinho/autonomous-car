@@ -3,8 +3,15 @@ import numpy as np
 
 from pyproj import Transformer, Proj
 from haversine import haversine
-from constants import GMAPS_KEY, TOP_LEFT_CORNER, BOTTOM_RIGHT_CORNER, TOP_RIGHT_CORNER, BOTTOM_LEFT_CORNER, IMAGE_HEIGHT, IMAGE_WIDTH
-
+from constants import (
+    GMAPS_KEY,
+    TOP_LEFT_CORNER,
+    BOTTOM_RIGHT_CORNER,
+    TOP_RIGHT_CORNER,
+    BOTTOM_LEFT_CORNER,
+    IMAGE_HEIGHT,
+    IMAGE_WIDTH,
+)
 
 
 class Map:
@@ -17,12 +24,28 @@ class Map:
             "+proj=utm +zone=10 +ellps=WGS84",
             always_xy=True,
         )
-        self.top_left_coord = np.array([*self.transformer.transform(TOP_LEFT_CORNER[0], TOP_LEFT_CORNER[1])])
-        self.bottom_right_coord = np.array([*self.transformer.transform(BOTTOM_RIGHT_CORNER[0], BOTTOM_RIGHT_CORNER[1])])
-        self.top_right_coord = np.array([*self.transformer.transform(TOP_RIGHT_CORNER[0], TOP_RIGHT_CORNER[1])])
-        self.bottom_left_coord = np.array([*self.transformer.transform(BOTTOM_LEFT_CORNER[0], BOTTOM_LEFT_CORNER[1])])
-        self.scale_x = IMAGE_WIDTH / (np.linalg.norm(self.bottom_left_coord - self.bottom_right_coord))
-        self.scale_y = IMAGE_HEIGHT / (np.linalg.norm(self.top_left_coord - self.bottom_left_coord))
+        self.top_left_coord = np.array(
+            [*self.transformer.transform(TOP_LEFT_CORNER[0], TOP_LEFT_CORNER[1])]
+        )
+        self.bottom_right_coord = np.array(
+            [
+                *self.transformer.transform(
+                    BOTTOM_RIGHT_CORNER[0], BOTTOM_RIGHT_CORNER[1]
+                )
+            ]
+        )
+        self.top_right_coord = np.array(
+            [*self.transformer.transform(TOP_RIGHT_CORNER[0], TOP_RIGHT_CORNER[1])]
+        )
+        self.bottom_left_coord = np.array(
+            [*self.transformer.transform(BOTTOM_LEFT_CORNER[0], BOTTOM_LEFT_CORNER[1])]
+        )
+        self.scale_x = IMAGE_WIDTH / (
+            np.linalg.norm(self.bottom_left_coord - self.bottom_right_coord)
+        )
+        self.scale_y = IMAGE_HEIGHT / (
+            np.linalg.norm(self.top_left_coord - self.bottom_left_coord)
+        )
 
     def rotate_points(self, points: np.array, angle: float):
         """Rotates the points by `angle` radians
@@ -83,7 +106,6 @@ class Map:
 
         # apperrently the pyproj library is rotating the points by around pi/60 radians
         arr = self.rotate_points(arr, np.pi / 60)
-
 
         return arr * np.array([self.scale_x, self.scale_y])
 
@@ -194,7 +216,7 @@ class Map:
         new_path = []
         for i in range(len(path) - 1):
             new_path.extend(self.get_points(path[i], path[i + 1]))
-            
+
         new_path = np.array(new_path)
 
         # Gets points on the road
@@ -204,12 +226,30 @@ class Map:
                 for step in self.gmaps.nearest_roads(new_path)
             ]
         )
-        
 
         origin_coord = self.transformer.transform(start[0], start[1])
 
         coords = np.zeros((len(temp), 2))
         for i in range(len(temp)):
-            coords[i] = self.get_coordinates(temp[i][0], temp[i][1])       
+            coords[i] = self.get_coordinates(temp[i][0], temp[i][1])
 
         return coords
+
+    def orient_path(self, path: np.array) -> np.array:
+
+        oriented_path = np.zeros(shape=(len(path), 3))
+
+        for i in range(0, len(path)):
+            oriented_path[i][:2] = path[i]
+
+            if i != len(path) - 1:
+                # Add theta
+                oriented_path[i][2] = np.degrees(
+                    np.arctan2(
+                        (path[i + 1][0] - path[i][0]), (path[i + 1][1] - path[i][1])
+                    )
+                )
+            else:
+                oriented_path[i][2] = oriented_path[i - 1][2]
+
+        return oriented_path
