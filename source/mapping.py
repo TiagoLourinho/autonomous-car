@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.animation as animation
 
 from blocks import Map, Car
 from constants import (
@@ -9,6 +10,36 @@ from constants import (
     BOTTOM_LEFT_CORNER,
     BOTTOM_RIGHT_CORNER,
 )
+
+TIME_STEP = 0.1  # seconds
+LINEAR_VELOCITY = 10  # kilometer per hour
+STEERING_VELOCITY = np.pi / 12  # radians per second
+
+def update(n, state):
+    axes = state["artists"]["axes"]
+
+    # Drive the car and get the result state
+    state["car"].drive(LINEAR_VELOCITY * 0.277777778, STEERING_VELOCITY, TIME_STEP)
+    current_state = state["car"].get_current_state()
+
+    # Update car position and orientation
+    state["artists"]["car_position"].set_data(current_state[0], current_state[1])
+
+    state["artists"]["car_theta"] = axes.arrow(
+        current_state[0],
+        current_state[1],
+        20 * np.cos(current_state[2]),
+        20 * np.sin(current_state[2]),
+        head_width=2,
+        head_length=2,
+        fc="k",
+        ec="k",
+    )
+
+    return [
+        state["artists"]["car_position"],
+        state["artists"]["car_theta"],
+    ]
 
 
 # Load the image file and convert it to a NumPy array
@@ -38,6 +69,8 @@ print(
     f"{round(bottom_left_corner[0][0])}, {round(bottom_left_corner[0][1])} ------ {round(bottom_right_corner[0][0])}, {round(bottom_right_corner[0][1])}"
 )
 
+state = {"map": map, "car": Car(), "artists": dict()}
+
 # Plot the point on the map
 fig, ax = plt.subplots()  # Create a figure and axes object
 
@@ -62,6 +95,18 @@ for i in range(len(coords)):
     x = coords[i][0] - round(origin[0][0])
     y = coords[i][1] - round(origin[0][1])
     ax.plot(x, y, "ro", markersize=3)  # Plot the path on the axes
+
+state["artists"]["axes"] = ax
+(state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=5)
+state["artists"]["car_theta"] = None
+
+anim = animation.FuncAnimation(
+    fig,
+    lambda n: update(n, state),
+    frames=None,
+    interval=TIME_STEP * 1000,
+    blit=True,
+)
 
 # Show the plot
 plt.show()

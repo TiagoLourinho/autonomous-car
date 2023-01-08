@@ -4,7 +4,10 @@ from time import sleep
 import traceback
 
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import numpy as np
+
+from matplotlib.patches import Circle
 from blocks import EKF, Car, Controller, Map, Sensors
 from constants import *
 
@@ -33,8 +36,6 @@ origin = map.get_coordinates(ORIGIN[0], ORIGIN[1]).reshape((2,))
 
 ekf = EKF(origin, FREQUENCY)
 
-fig, ax = plt.subplots()  # Create a figure and axes object
-
 # Set the x-axis and y-axis limits to center the origin point
 x_lims = [
     round(bottom_left_corner[0][0]) - round(origin[0]),
@@ -44,8 +45,6 @@ y_lims = [
     round(bottom_left_corner[0][1]) - round(origin[1]),
     round(top_right_corner[0][1]) - round(origin[1]),
 ]
-ax.set_xlim(x_lims[0], x_lims[1])
-ax.set_ylim(y_lims[0], y_lims[1])
 
 controller = Controller(
     qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2
@@ -96,34 +95,78 @@ def check_new_sensor_data():
             last_imu_poll = time.time()
 
 
+def update_plot(n, state):
+    """Updates the plot"""   
+
+    axes = state["artists"]["axes"]
+
+    # Drive the car and get the result state
+    position = ekf.get_current_state()[:3]
+
+    print(f"Position: {position}")
+
+    # Update car position and orientation
+    state["artists"]["car_position"].set_data(position[0], position[1])
+
+    state["artists"]["car_theta"] = axes.arrow(
+        position[0] - round(origin[0]),
+        position[1] - round(origin[1]),
+        10 * np.cos(position[2]),
+        10 * np.sin(position[2]),
+        head_width=2,
+        head_length=2,
+        fc="k",
+        ec="k",
+    )
+
+    return [
+        state["artists"]["car_position"],
+        state["artists"]["car_theta"],
+    ]
+
+
 def display_current_state(path):
     """Displays the path and the current state"""
+    state = {"map": map, "car": Car(), "artists": dict()}
 
-    # Display initial path
+    # Plot the point on the map
+    fig, ax = plt.subplots()  # Create a figure and axes object
+
+    # Set the x-axis and y-axis limits to center the origin point
+    x_lims = [
+        round(bottom_left_corner[0][0]) - round(origin[0]),
+        round(top_right_corner[0][0]) - round(origin[0]),
+    ]
+    y_lims = [
+        round(bottom_left_corner[0][1]) - round(origin[1]),
+        round(top_right_corner[0][1]) - round(origin[1]),
+    ]
+
+    ax.set_xlim(x_lims[0], x_lims[1])
+    ax.set_ylim(y_lims[0], y_lims[1])
     ax.imshow(
         image, extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]]
     )  # Plot the image on the axes
+
     for i in range(len(path)):
         x = path[i][0] - round(origin[0])
         y = path[i][1] - round(origin[1])
         ax.plot(x, y, "ro", markersize=3)  # Plot the path on the axes
 
-    global thread_shutdown
-    global update_gui
-    while not thread_shutdown:
-        with lock:
-            if update_gui:
-                update_gui = False
+    state["artists"]["axes"] = ax
+    (state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=5)
+    state["artists"]["car_theta"] = None
 
-                position = ekf.get_current_state()[:2]
+    anim = animation.FuncAnimation(
+        fig,
+        lambda n: update_plot(n, state),
+        frames=None,
+        interval=1000 / FREQUENCY,
+        blit=True,
+    )
 
-                # Update gui with the car
-                plt.plot(
-                    position[0] - round(origin[0]),
-                    position[1] - round(origin[1]),
-                    "bo",
-                    markersize=5,
-                )  # Plot the car on the axes)
+    # Show the plot
+    plt.show()
 
 
 def get_control(next_point):
@@ -147,7 +190,6 @@ def main():
 
     threads = {
         "sensor_thread": Thread(target=check_new_sensor_data),
-        "gui_thread": Thread(target=display_current_state, args=(path,)),
     }
 
     for t in threads.values():
@@ -160,6 +202,8 @@ def main():
                 get_control(point)
 
                 sleep(1 / FREQUENCY)
+
+                display_current_state(path)
 
                 position = ekf.get_current_state()[:2]
 
