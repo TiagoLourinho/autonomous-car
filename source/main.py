@@ -8,7 +8,7 @@ from blocks import EKF, Car, Controller, Map, Sensors
 from constants import (BOTTOM_LEFT_CORNER, BOTTOM_RIGHT_CORNER, ORIGIN,
                        TOP_LEFT_CORNER, TOP_RIGHT_CORNER)
 
-OBJETIVE = np.array()  # Objetive position in lat/lon
+OBJETIVE = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
 FREQUENCY = 100  # Hz
 
 # Thread related
@@ -20,7 +20,8 @@ new_sensor_data = False  # Signals new sensor data available
 update_gui = False  # Signals if the car moved
 
 ekf = EKF()  # Keeps and updates system state
-current_control = np.array()  # Keeps the current controllers
+sensor = Sensors()
+current_control = np.array([0,0])  # Keeps the current controllers
 map = Map()  # Keeps the map
 
 # Load the image file and convert it to a NumPy array
@@ -48,7 +49,7 @@ controller = Controller(qsi = 1,w_n = 10,v_ref=36,w_ref = 4,h = 0.01, L = 2.2) #
 def get_initial_position():
     """Reads the sensors and returns an initial position guess (x, y)"""
 
-    return np.array()
+    return origin
 
 
 def get_path(initial_position, objective):
@@ -132,9 +133,11 @@ def main():
         t.start()
 
     try:
-        while True:
-            get_controls(path)
-            sleep(1 / FREQUENCY)
+        for point in path:   
+            while True:  
+                get_controls(point)
+                sleep(1 / FREQUENCY)
+
 
     except KeyboardInterrupt:
         thread_shutdown = True
