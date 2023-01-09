@@ -1,7 +1,9 @@
 import googlemaps
 import numpy as np
+import math
 
-from pyproj import Transformer, Proj
+from utils import R_x, R_z
+from pyproj import CRS, Transformer, Proj
 from haversine import haversine
 from constants import (
     GMAPS_KEY,
@@ -11,19 +13,31 @@ from constants import (
     BOTTOM_LEFT_CORNER,
     IMAGE_HEIGHT,
     IMAGE_WIDTH,
+    ORIGIN,
 )
 
+
+class MyTransformer:
+    """Transformer that projects (lat, lon) ECEF into (x, y) ENU"""
+    
+    def transform(self, lat, lon):
+        wgs84_geod = CRS.from_epsg(4326)
+        wgs84_geoc = CRS.from_epsg(4978)
+        transformer = Transformer.from_crs(wgs84_geod, wgs84_geoc)
+    
+        xyzORIGIN = np.array([*transformer.transform(ORIGIN[0], ORIGIN[1], 89)])
+        xyzPoint = np.array([*transformer.transform(lat, lon, 89)])
+
+        return tuple(np.array([*((xyzPoint - xyzORIGIN) @ R_z(math.radians(ORIGIN[1]) + np.pi / 2) @ R_x(np.pi / 2 - math.radians(ORIGIN[0])))])[:2])
 
 class Map:
     """Path planning (using google maps API for now)"""
 
     def __init__(self) -> None:
         self.gmaps = googlemaps.Client(key=GMAPS_KEY)
-        self.transformer = Transformer.from_crs(
-            "epsg:4326",
-            "+proj=utm +zone=10 +ellps=WGS84",
-            always_xy=True,
-        )
+        
+        self.transformer = MyTransformer()
+        
         self.top_left_coord = np.array(
             [*self.transformer.transform(TOP_LEFT_CORNER[0], TOP_LEFT_CORNER[1])]
         )
@@ -96,16 +110,16 @@ class Map:
         arr = np.array(
             [
                 np.array([*self.transformer.transform(latitude, longitude)])
-                - self.bottom_left_coord
+                #- self.bottom_left_coord
             ]
         )
 
         # rotate the points by pi/2 radians and reflect them
-        arr = self.rotate_points(arr, np.pi / 2)
-        arr = self.reflect_points(arr)
+        #arr = self.rotate_points(arr, np.pi / 2)
+        #arr = self.reflect_points(arr)
 
         # apperrently the pyproj library is rotating the points by around pi/60 radians
-        arr = self.rotate_points(arr, np.pi / 60)
+        #arr = self.rotate_points(arr, np.pi / 60)
 
         return arr * np.array([self.scale_x, self.scale_y])
 

@@ -10,6 +10,7 @@ import numpy as np
 
 from blocks import EKF, Controller, Map, Sensors
 from constants import *
+from blocks.mpc import MPC_Controller
 
 OBJECTIVE = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
 FREQUENCY = 100  # Hz
@@ -21,6 +22,7 @@ thread_shutdown = False
 # Blocks
 map = Map()
 controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
+#controller = MPC_Controller()
 origin = map.get_coordinates(ORIGIN[0], ORIGIN[1]).reshape((2,))
 ekf = EKF(origin, FREQUENCY)
 
@@ -116,7 +118,8 @@ def start_gui(path):
     """Displays the path and the"""
 
     state = {"artists": dict()}
-    image = plt.imread("images/map_improved.png")
+    #image = plt.imread("images/map_improved.png")
+    image = plt.imread("images/ist.jpg")
 
     fig, ax = plt.subplots()
 
