@@ -116,7 +116,8 @@ def start_gui(path):
     """Displays the path and the"""
 
     state = {"artists": dict()}
-    image = plt.imread("images/map_improved.png")
+    #image = plt.imread("images/map_improved.png")
+    image = plt.imread("images/ist.jpg")
 
     fig, ax = plt.subplots()
 
@@ -151,7 +152,7 @@ def start_gui(path):
         fig,
         lambda n: update_animation(n, state),
         frames=None,
-        interval=5000,
+        interval=1000,
         blit=True,
     )
 
