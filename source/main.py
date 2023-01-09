@@ -40,7 +40,7 @@ def sensor_thread():
     last_imu_poll = 0
 
     while not thread_shutdown:
-        print("sensor running")
+
         sensors.acquire()
 
         state = ekf.get_current_state()
@@ -64,7 +64,7 @@ def control_thread(path):
 
     for point in map.orient_path(path):
         while True:
-            print("control running")
+
             pose = ekf.get_current_state()[:3]
             current_control = controller.following_trajectory(point, pose)
             ekf.predict(current_control)
