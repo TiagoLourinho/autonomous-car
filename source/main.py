@@ -10,7 +10,8 @@ import numpy as np
 
 from blocks import EKF, Controller, Map, Sensors
 from constants import *
-from blocks.mpc import MPC_Controller
+
+# from blocks.mpc import MPC_Controller
 
 OBJECTIVE = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
 FREQUENCY = 100  # Hz
@@ -22,7 +23,7 @@ thread_shutdown = False
 # Blocks
 map = Map()
 controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
-#controller = MPC_Controller()
+# controller = MPC_Controller()
 origin = map.get_coordinates(ORIGIN[0], ORIGIN[1]).reshape((2,))
 ekf = EKF(origin, FREQUENCY)
 
@@ -100,12 +101,11 @@ def update_animation(n, state):
     state["artists"]["car_theta"] = axes.arrow(
         position[0] - round(origin[0]),
         position[1] - round(origin[1]),
-        10 * np.cos(position[2]),
-        10 * np.sin(position[2]),
-        head_width=2,
-        head_length=2,
-        fc="k",
-        ec="k",
+        100 * np.cos(position[2]),
+        100 * np.sin(position[2]),
+        head_width=100,
+        head_length=100,
+        color="b",
     )
 
     return [
@@ -118,7 +118,7 @@ def start_gui(path):
     """Displays the path and the"""
 
     state = {"artists": dict()}
-    #image = plt.imread("images/map_improved.png")
+    # image = plt.imread("images/map_improved.png")
     image = plt.imread("images/ist.jpg")
 
     fig, ax = plt.subplots()
@@ -154,7 +154,7 @@ def start_gui(path):
         fig,
         lambda n: update_animation(n, state),
         frames=None,
-        interval=5000,
+        interval=500,
         blit=True,
     )
 
