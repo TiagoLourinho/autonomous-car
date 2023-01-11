@@ -50,12 +50,12 @@ def sensor_thread():
 
         sensors.update_world_view(state[2], state[:2], state[4:6], np.array((0.0, 0.0)))
 
-        pos = sensors.get_GPS_position()
-        velocities = sensors.get_IMU_data()
-        if pos is not None and time.time() - last_gps_poll >= gps_poll_freq:
+        if time.time() - last_gps_poll >= gps_poll_freq:
+            pos = sensors.get_GPS_position()
             ekf.update(pos, "gps")
             last_gps_poll = time.time()
-        if velocities is not None and time.time() - last_imu_poll >= imu_poll_freq:
+        if time.time() - last_imu_poll >= imu_poll_freq:
+            velocities = sensors.get_IMU_data()
             ekf.update(velocities, "imu")
             last_imu_poll = time.time()
 
@@ -101,10 +101,10 @@ def update_animation(n, state):
     state["artists"]["car_theta"] = axes.arrow(
         position[0] - round(origin[0]),
         position[1] - round(origin[1]),
-        100 * np.cos(position[2]),
-        100 * np.sin(position[2]),
-        head_width=100,
-        head_length=100,
+        5 * np.cos(position[2]),
+        5 * np.sin(position[2]),
+        head_width=3,
+        head_length=3,
         color="b",
     )
 
@@ -119,7 +119,7 @@ def start_gui(path):
 
     state = {"artists": dict()}
     # image = plt.imread("images/map_improved.png")
-    image = plt.imread("images/ist.jpg")
+    image = plt.imread("images/ist.jpeg")
 
     fig, ax = plt.subplots()
 
@@ -147,7 +147,7 @@ def start_gui(path):
         ax.plot(x, y, "ro", markersize=3)
 
     state["artists"]["axes"] = ax
-    (state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=10)
+    (state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=5)
     state["artists"]["car_theta"] = None
 
     anim = animation.FuncAnimation(
