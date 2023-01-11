@@ -244,13 +244,21 @@ class Map:
 
         new_path = np.array(new_path)
 
-        # Gets points on the road
-        temp = np.array(
-            [
-                [step["location"]["latitude"], step["location"]["longitude"]]
-                for step in self.gmaps.nearest_roads(new_path)
-            ]
-        )
+        # # Gets points on the road
+        # temp = np.array(
+        #     [
+        #         [step["location"]["latitude"], step["location"]["longitude"]]
+        #         for step in self.gmaps.nearest_roads(new_path)
+        #     ]
+        # )
+        
+        # Get rid of 2-way roads
+        temp = []
+        originalIndex = -1
+        for step in self.gmaps.nearest_roads(new_path):
+            if originalIndex != step["originalIndex"]:
+                temp.append([step["location"]["latitude"], step["location"]["longitude"]])
+                originalIndex = step["originalIndex"]
 
         origin_coord = self.transformer.transform(start[0], start[1])
 
