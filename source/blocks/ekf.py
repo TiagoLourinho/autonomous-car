@@ -18,7 +18,7 @@ class EKF:
         self.time_step = 1 / predict_frequency
 
         self.state = np.zeros(shape=(8,))
-        self.state[:2] = initial_estimate
+        self.state[: len(initial_estimate)] = initial_estimate
 
         self.cov = np.identity(8)
 
@@ -61,26 +61,15 @@ class EKF:
                     [0, 1, control[0]*self.time_step*np.cos(self.state[2])*np.cos(self.state[3]), -control[0]*self.time_step*np.sin(self.state[2])*np.sin(self.state[3]), 0, 0, 0, 0],
                     [0, 0, 1, control[0]*self.time_step*np.cos(self.state[3])/self.car_L, 0, 0, 0, 0],
                     [0, 0, 0, 1, 0, 0, 0, 0],
-                    [1, 0, -control[0]*np.sin(self.state[2])*np.cos(self.state[3]), -control[0]*np.cos(self.state[2])*np.sin(self.state[3]), 0, 0, 0, 0],
-                    [0, 1, control[0]*np.cos(self.state[2])*np.cos(self.state[3]), -control[0]*np.sin(self.state[2])*np.sin(self.state[3]), 0, 0, 0, 0],
-                    [0, 0, 1, control[0]*np.cos(self.state[3])/self.car_L, 0, 0, 0, 0],
-                    [0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, -control[0]*np.sin(self.state[2])*np.cos(self.state[3]), -control[0]*np.cos(self.state[2])*np.sin(self.state[3]), 0, 0, 0, 0],
+                    [0, 0, control[0]*np.cos(self.state[2])*np.cos(self.state[3]), -control[0]*np.sin(self.state[2])*np.sin(self.state[3]), 0, 0, 0, 0],
+                    [0, 0, 0, control[0]*np.cos(self.state[3])/self.car_L, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
                 ]
             )
             # fmt:on
 
-            R = np.array(
-                [
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                ]
-            )
+            R = np.identity(8)
 
             g = lambda controls, state: A @ state + B @ controls
 
@@ -108,12 +97,8 @@ class EKF:
 
                 h = lambda state: A @ state
 
-                Q = np.array(
-                    [
-                        [1, 0],
-                        [0, 1],
-                    ]
-                )
+                Q = np.identity(2)
+
             elif sensor.lower() == "imu":
                 A = np.array(
                     [
@@ -133,13 +118,7 @@ class EKF:
 
                 h = lambda state: A @ state
 
-                Q = np.array(
-                    [
-                        [1, 0, 0],
-                        [0, 1, 0],
-                        [0, 0, 1],
-                    ]
-                )
+                Q = np.identity(3)
 
             kalman_gain = self.cov @ H.T @ np.linalg.inv(H @ self.cov @ H.T + Q)
             self.state = self.state + kalman_gain @ (measurements - h(self.state))
