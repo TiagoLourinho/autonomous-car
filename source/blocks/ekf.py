@@ -129,3 +129,10 @@ class EKF:
         with self.lock:
 
             return self.state
+
+    def get_current_cov(self) -> np.array:
+        """Returns the current covariance estimate"""
+
+        with self.lock:
+
+            return self.cov
