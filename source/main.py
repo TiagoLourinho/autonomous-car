@@ -154,7 +154,9 @@ def start_gui(path, ekf):
         ax.plot(x, y, "ro", markersize=3)
 
     state["artists"]["axes"] = ax
-    (state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=5)
+    (state["artists"]["car_position"],) = ax.plot(
+        *ekf.get_current_state()[:2], "bo", markersize=5
+    )
     state["artists"]["car_theta"] = None
 
     anim = animation.FuncAnimation(
