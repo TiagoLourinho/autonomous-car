@@ -25,8 +25,8 @@ BOTTOM_RIGHT_CORNER = np.array(
     [dms2deg(38, 44, 5.92, "N"), dms2deg(9, 8, 10.05, "W")]
 )  # Latitude and Longitude of bottom right corner of map
 
-IMAGE_HEIGHT = plt.imread("images/ist.jpeg").shape[0]  # Height of map image in pixels
-IMAGE_WIDTH = plt.imread("images/ist.jpeg").shape[1]  # Width of map image in pixels
+IMAGE_HEIGHT = plt.imread("../images/ist.jpeg").shape[0]  # Height of map image in pixels
+IMAGE_WIDTH = plt.imread("../images/ist.jpeg").shape[1]  # Width of map image in pixels
 
 
 # TOP_LEFT_CORNER = np.array(

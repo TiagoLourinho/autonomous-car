@@ -9,6 +9,7 @@ import numpy as np
 
 
 from blocks import EKF, Controller, Map, Sensors
+from blocks.mpc import MPC_Controller
 from constants import *
 
 # from blocks.mpc import MPC_Controller
@@ -75,6 +76,7 @@ def control_thread(oriented_path):
 
             pose = ekf.get_current_state()[:3]
             current_control = controller.following_trajectory(point, pose)
+            print(current_control)
             ekf.predict(current_control)
 
             sleep(1 / FREQUENCY)
@@ -124,7 +126,7 @@ def start_gui(path):
 
     state = {"artists": dict()}
     # image = plt.imread("images/map_improved.png")
-    image = plt.imread("images/ist.jpeg")
+    image = plt.imread("../images/ist.jpeg")
 
     fig, ax = plt.subplots()
 
