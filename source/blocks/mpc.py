@@ -48,14 +48,14 @@ class MPC_Controller:
         mpc = do_mpc.controller.MPC(self.model)
 
         setup_mpc = {
-            'n_horizon': 5,
+            'n_horizon': 10,
             't_step': 0.1,
             'n_robust': 1,
-            'store_full_solution': True,
+            'store_full_solution': False,
         }
         mpc.set_param(**setup_mpc)
 
-        mterm = (self.x-point[0])**2 + (self.y-point[1])**2  + self.phi**2 + self.theta**2
+        mterm = 10*(self.x-point[0])**2 + 10*(self.y-point[1])**2 
         lterm = (self.x-point[0])**2 + (self.y-point[1])**2 
 
         mpc.set_objective(mterm=mterm, lterm=lterm)
@@ -77,11 +77,11 @@ class MPC_Controller:
         mpc.bounds['upper','_x', 'phi'] = np.pi/3
 
         # Lower bounds on inputs:
-        mpc.bounds['lower','_u', 'V'] = -50
-        mpc.bounds['lower','_u', 'ws'] = -50
+        mpc.bounds['lower','_u', 'V'] = 0
+        mpc.bounds['lower','_u', 'ws'] = 0
         # Lower bounds on inputs:
-        mpc.bounds['upper','_u', 'V'] = 50
-        mpc.bounds['upper','_u', 'ws'] = 50
+        mpc.bounds['upper','_u', 'V'] = 45
+        mpc.bounds['upper','_u', 'ws'] = 45
 
         #mpc.scaling['_x', 'x'] = 2
         #mpc.scaling['_x', 'y'] = 2
@@ -93,6 +93,7 @@ class MPC_Controller:
     
     def following_trajectory(self, point: np.array, state0: np.array):
         mpc = self.define_objective(point, state0)
+        #state0 = np.array([state0[0], state0[1], state0[2], 0])
 
         simulator = do_mpc.simulator.Simulator(self.model)
 
@@ -111,7 +112,7 @@ class MPC_Controller:
         u0 = mpc.make_step(state0)
         state0 = simulator.make_step(u0)
 
-        return u0
+        return np.array([u0[0][0], u0[1][0]]), state0
 
 
 def simulations(mpc, simulator):
@@ -153,11 +154,34 @@ def simulations(mpc, simulator):
     fig.savefig('test.png')
 
 def main():
-    mpc = MPC()
-    u0 = mpc.apply_control_step(10, 10, np.array([0,0,0,0]))
+    mpc = MPC_Controller()
 
-    print(u0)
+    with open("../../trajectory.txt") as f:
+        lines = f.readlines()
+        xs = []
+        ys = []
+        thetas = []
+        for line in lines:
+            xs.append(float(line.split()[0]))
+            ys.append(float(line.split()[1]))
+            thetas.append(float(line.split()[2]))
 
+    j=0
+    point = np.array([0,0,0,0])
+    for i in range(len(lines)):
+        print("REF:"*30, [xs[i], ys[i]])
+        while True:
+            u0, point = mpc.following_trajectory(np.array([xs[i], ys[i]]), point)
+            print("REF:"*30, [xs[i], ys[i]])
+            print("POINT:", [point[0], point[1]])
+            print(j)
+            print(np.sqrt((xs[i]-point[0])**2 + (ys[i]-point[1])**2)**2)
+            print(np.linalg.norm(np.array([xs[i], ys[i]]) - np.array([point[0], point[1]]))**2)
+            if np.sqrt((xs[i]-point[0])**2 + (ys[i]-point[1])**2)**2 < 2:
+                j+=1
+                if j==4:
+                    quit()
+                break
 
     sim = 0
     import matplotlib.pyplot as plt
