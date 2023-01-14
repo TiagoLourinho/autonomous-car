@@ -8,8 +8,9 @@ GMAPS_KEY = "AIzaSyAE3mAAR3DtUpmMY17pS18a7LeSzIbZXFI"  # Google Maps API key
 
 
 ORIGIN = np.array(
-    [38.737953, -9.138711]
-)  # np.array([38.737151, -9.139810]) # Latitude and Longitude of entrance of north tower
+    [38.73761835946306, -9.138958625673242]
+)  # Latitude and Longitude of entrance of north tower
+
 
 TOP_LEFT_CORNER = np.array(
     [dms2deg(38, 44, 19.03, "N"), dms2deg(9, 8, 29.68, "W")]

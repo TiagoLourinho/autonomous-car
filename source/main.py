@@ -13,7 +13,9 @@ from constants import *
 
 # from blocks.mpc import MPC_Controller
 
-OBJECTIVE = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
+START = np.array([38.737953, -9.138711])  # np.array([38.737151, -9.139810])
+
+END = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
 FREQUENCY = 100  # Hz
 
 # Thread related
@@ -24,7 +26,7 @@ thread_shutdown = False
 map = Map()
 controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
 # controller = MPC_Controller()
-origin = map.get_coordinates(ORIGIN[0], ORIGIN[1]).reshape((2,))
+origin = map.get_coordinates(*ORIGIN).reshape((2,))
 
 
 def sensor_thread():
@@ -49,7 +51,7 @@ def sensor_thread():
 
         state = ekf.get_current_state()
 
-        sensors.update_world_view(state[2], state[:2], state[4:6], np.array((0.0, 0.0)))
+        sensors.update_world_view(state[2], state[:2], state[4:7], None)
 
         if time.time() - last_gps_poll >= gps_poll_freq:
             pos = sensors.get_GPS_position()
@@ -168,11 +170,16 @@ def main():
     global thread_shutdown
     global ekf
 
-    path = map.get_path(ORIGIN, OBJECTIVE)
+    path = map.get_path(START, END)
     oriented_path = map.orient_path(path)
 
     # Set initial theta
-    ekf = EKF(np.concatenate([origin, [oriented_path[0][2]]]), FREQUENCY)
+    ekf = EKF(
+        np.concatenate(
+            [map.get_coordinates(*START).reshape((2,)), [oriented_path[0][2]]]
+        ),
+        FREQUENCY,
+    )
 
     threads = {
         "sensor_thread": Thread(target=sensor_thread),
