@@ -15,6 +15,8 @@ class EKF:
         """
 
         self.car_L = 2.46
+        self.max_wheel_angle = 40
+
         self.time_step = 1 / predict_frequency
 
         self.state = np.zeros(shape=(8,))
@@ -76,6 +78,23 @@ class EKF:
             self.state = g(control, self.state)
             self.cov = G @ self.cov @ G.T + R
 
+            # Account for maximum steering angle
+            self.state[3] = (
+                min(
+                    np.deg2rad(
+                        self.max_wheel_angle,
+                    ),
+                    self.state[3],
+                )
+                if self.state[3] > 0
+                else max(
+                    np.deg2rad(
+                        -self.max_wheel_angle,
+                    ),
+                    self.state[3],
+                )
+            )
+
     def update(self, measurements: np.array, sensor: str) -> None:
         """Update step"""
         with self.lock:
@@ -123,6 +142,23 @@ class EKF:
             kalman_gain = self.cov @ H.T @ np.linalg.inv(H @ self.cov @ H.T + Q)
             self.state = self.state + kalman_gain @ (measurements - h(self.state))
             self.cov = (np.identity(8) - kalman_gain @ H) @ self.cov
+
+            # Account for maximum steering angle
+            self.state[3] = (
+                min(
+                    np.deg2rad(
+                        self.max_wheel_angle,
+                    ),
+                    self.state[3],
+                )
+                if self.state[3] > 0
+                else max(
+                    np.deg2rad(
+                        -self.max_wheel_angle,
+                    ),
+                    self.state[3],
+                )
+            )
 
     def get_current_state(self) -> np.array:
         """Returns the current state estimate"""
