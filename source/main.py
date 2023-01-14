@@ -25,11 +25,12 @@ map = Map()
 controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
 # controller = MPC_Controller()
 origin = map.get_coordinates(ORIGIN[0], ORIGIN[1]).reshape((2,))
-ekf = EKF(origin, FREQUENCY)
 
 
 def sensor_thread():
     """Function to run in a thread, checking for new sensor data and updating EKF"""
+
+    sleep(5)  # Load GUI
 
     global thread_shutdown
 
@@ -60,12 +61,14 @@ def sensor_thread():
             last_imu_poll = time.time()
 
 
-def control_thread(path):
+def control_thread(oriented_path):
     """Function to run in a thread, calculating the control signals"""
+
+    sleep(5)  # Load GUI
 
     global thread_shutdown
 
-    for point in map.orient_path(path):
+    for point in oriented_path:
         while True:
 
             pose = ekf.get_current_state()[:3]
@@ -163,12 +166,17 @@ def start_gui(path):
 
 def main():
     global thread_shutdown
+    global ekf
 
     path = map.get_path(ORIGIN, OBJECTIVE)
+    oriented_path = map.orient_path(path)
+
+    # Set initial theta
+    ekf = EKF(np.concatenate([origin, [oriented_path[0][2]]]), FREQUENCY)
 
     threads = {
         "sensor_thread": Thread(target=sensor_thread),
-        "controller_thread": Thread(target=control_thread, args=(path,)),
+        "controller_thread": Thread(target=control_thread, args=(oriented_path,)),
     }
 
     for t in threads.values():
