@@ -30,7 +30,7 @@ controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 
 
-def sensor_thread():
+def sensor_thread(ekf):
     """Function to run in a thread, checking for new sensor data and updating EKF"""
 
     sleep(5)  # Load GUI
@@ -66,7 +66,7 @@ def sensor_thread():
             last_imu_poll = time.time()
 
 
-def control_thread(oriented_path):
+def control_thread(oriented_path, ekf):
     """Function to run in a thread, calculating the control signals"""
 
     sleep(5)  # Load GUI
@@ -78,7 +78,7 @@ def control_thread(oriented_path):
 
             pose = ekf.get_current_state()[:3]
             current_control = controller.following_trajectory(point, pose)
-            print(current_control)
+
             ekf.predict(current_control)
 
             sleep(1 / FREQUENCY)
@@ -96,7 +96,7 @@ def control_thread(oriented_path):
     thread_shutdown = True
 
 
-def update_animation(n, state):
+def update_animation(n, state, ekf):
     """Updates the plot (used by FuncAnimation)"""
 
     axes = state["artists"]["axes"]
@@ -123,7 +123,7 @@ def update_animation(n, state):
     ]
 
 
-def start_gui(path):
+def start_gui(path, ekf):
     """Displays the path and the"""
 
     state = {"artists": dict()}
@@ -161,7 +161,7 @@ def start_gui(path):
 
     anim = animation.FuncAnimation(
         fig,
-        lambda n: update_animation(n, state),
+        lambda n: update_animation(n, state, ekf),
         frames=None,
         interval=100,
         blit=True,
@@ -172,7 +172,6 @@ def start_gui(path):
 
 def main():
     global thread_shutdown
-    global ekf
 
     path = map.get_path(START, END)
     oriented_path = map.orient_path(path)
@@ -186,15 +185,15 @@ def main():
     )
 
     threads = {
-        "sensor_thread": Thread(target=sensor_thread),
-        "controller_thread": Thread(target=control_thread, args=(oriented_path,)),
+        "sensor_thread": Thread(target=sensor_thread, args=(ekf,)),
+        "controller_thread": Thread(target=control_thread, args=(oriented_path, ekf)),
     }
 
     for t in threads.values():
         t.start()
 
     try:
-        start_gui(path)
+        start_gui(path, ekf)
     except Exception:
         print(traceback.format_exc())
     finally:
