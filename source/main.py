@@ -56,10 +56,12 @@ def sensor_thread():
 
         if time.time() - last_gps_poll >= gps_poll_freq:
             pos = sensors.get_GPS_position()
+            pos = state[:2]
             ekf.update(pos, "gps")
             last_gps_poll = time.time()
         if time.time() - last_imu_poll >= imu_poll_freq:
             velocities = sensors.get_IMU_data()
+            velocities = state[4:7]
             ekf.update(velocities, "imu")
             last_imu_poll = time.time()
 
@@ -126,7 +128,7 @@ def start_gui(path):
 
     state = {"artists": dict()}
     # image = plt.imread("images/map_improved.png")
-    image = plt.imread("../images/ist.jpeg")
+    image = plt.imread("images/ist.jpeg")
 
     fig, ax = plt.subplots()
 
