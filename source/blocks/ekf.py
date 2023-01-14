@@ -22,7 +22,7 @@ class EKF:
         self.state = np.zeros(shape=(8,))
         self.state[: len(initial_estimate)] = initial_estimate
 
-        self.cov = np.identity(8)
+        self.cov = np.identity(8) / 10
 
         self.lock = Lock()
 
@@ -71,7 +71,7 @@ class EKF:
             )
             # fmt:on
 
-            R = np.identity(8)
+            R = np.identity(8) / 10
 
             g = lambda controls, state: A @ state + B @ controls
 
@@ -116,7 +116,7 @@ class EKF:
 
                 h = lambda state: A @ state
 
-                Q = np.identity(2)
+                Q = np.identity(2) / 10
 
             elif sensor.lower() == "imu":
                 A = np.array(
@@ -137,7 +137,7 @@ class EKF:
 
                 h = lambda state: A @ state
 
-                Q = np.identity(3)
+                Q = np.identity(3) / 10
 
             kalman_gain = self.cov @ H.T @ np.linalg.inv(H @ self.cov @ H.T + Q)
             self.state = self.state + kalman_gain @ (measurements - h(self.state))

@@ -77,7 +77,7 @@ def control_thread(path):
             position = ekf.get_current_state()[:2]
 
             # Move to next point if close enough to the current one
-            if np.linalg.norm(position - point[:2]) < 2:
+            if np.linalg.norm(position - point[:2]) < 3:  # Standard road width
                 break
 
             if thread_shutdown:
@@ -154,7 +154,7 @@ def start_gui(path):
         fig,
         lambda n: update_animation(n, state),
         frames=None,
-        interval=500,
+        interval=100,
         blit=True,
     )
 
