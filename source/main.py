@@ -23,7 +23,7 @@ thread_shutdown = False
 
 # Blocks
 map = Map()
-controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
+controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.24)
 # controller = MPC_Controller()
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 
