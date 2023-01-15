@@ -211,11 +211,13 @@ def choose_path():
     )
 
     plt.show()
-
-    # FIXME: Remove after introducing inverse transformation
-    points["start"] = np.array([38.737953, -9.138711])
-    points["end"] = np.array([38.736911, -9.139010])
-
+    
+    points["start"] /= np.array([map.scale_x, map.scale_y])
+    points["end"] /= np.array([map.scale_x, map.scale_y])
+    
+    points["start"] = map.transformer.invtransform(points["start"][0], points["start"][1])
+    points["end"] = map.transformer.invtransform(points["end"][0], points["end"][1])
+    
     return map.get_path(points["start"], points["end"]), points["start"]
 
 

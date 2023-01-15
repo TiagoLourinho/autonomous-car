@@ -164,6 +164,29 @@ class Map:
 
         return arr * np.array([self.scale_x, self.scale_y])
 
+    def get_latlon(self, east: float, north: float):
+        """Transforms cartesian coordinates into latitude and longitude
+
+        Parameters
+        ----------
+
+        east: float
+            East (x) coordinate in meters
+
+        north: float
+            North (y) coordinate in meters
+
+        Returns
+        -------
+
+        np.array of shape (2, )
+            Geodetic coordinates
+        """
+        arr = np.array([east, north]) / np.array([map.scale_x, map.scale_y])
+        arr = np.array([np.array([*self.transformer.invtransform(east, north)])])
+
+        return arr * np.array([self.scale_x, self.scale_y])
+
     def reflect_points(self, points: np.array):
         """Reflects the points
 
