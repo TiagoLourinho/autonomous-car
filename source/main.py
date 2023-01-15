@@ -14,9 +14,7 @@ from constants import *
 
 # from blocks.mpc import MPC_Controller
 
-START = np.array([38.737953, -9.138711])  # np.array([38.737151, -9.139810])
 
-END = np.array([38.736911, -9.139010])  # Objetive position in lat/lon
 FREQUENCY = 100  # Hz
 
 # Thread related
@@ -30,7 +28,7 @@ controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 
 
-def sensor_thread():
+def sensor_thread(ekf):
     """Function to run in a thread, checking for new sensor data and updating EKF"""
 
     sleep(5)  # Load GUI
@@ -66,7 +64,7 @@ def sensor_thread():
             last_imu_poll = time.time()
 
 
-def control_thread(oriented_path):
+def control_thread(oriented_path, ekf):
     """Function to run in a thread, calculating the control signals"""
 
     sleep(5)  # Load GUI
@@ -78,7 +76,7 @@ def control_thread(oriented_path):
 
             pose = ekf.get_current_state()[:3]
             current_control = controller.following_trajectory(point, pose)
-            print(current_control)
+
             ekf.predict(current_control)
 
             sleep(1 / FREQUENCY)
@@ -96,7 +94,7 @@ def control_thread(oriented_path):
     thread_shutdown = True
 
 
-def update_animation(n, state):
+def update_animation(n, state, ekf):
     """Updates the plot (used by FuncAnimation)"""
 
     axes = state["artists"]["axes"]
@@ -123,7 +121,7 @@ def update_animation(n, state):
     ]
 
 
-def start_gui(path):
+def start_gui(path, ekf):
     """Displays the path and the"""
 
     state = {"artists": dict()}
@@ -156,12 +154,14 @@ def start_gui(path):
         ax.plot(x, y, "ro", markersize=3)
 
     state["artists"]["axes"] = ax
-    (state["artists"]["car_position"],) = ax.plot([], [], "bo", markersize=5)
+    (state["artists"]["car_position"],) = ax.plot(
+        *ekf.get_current_state()[:2], "bo", markersize=5
+    )
     state["artists"]["car_theta"] = None
 
     anim = animation.FuncAnimation(
         fig,
-        lambda n: update_animation(n, state),
+        lambda n: update_animation(n, state, ekf),
         frames=None,
         interval=100,
         blit=True,
@@ -170,31 +170,79 @@ def start_gui(path):
     plt.show()
 
 
+def choose_path():
+    def onclick(event, fig, points):
+        if points["start"] is None:
+            points["start"] = (event.xdata, event.ydata)
+
+            # Update plot
+            fig.gca().set_title("Click in the end position")
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+
+        elif points["end"] is None:
+            points["end"] = (event.xdata, event.ydata)
+            plt.close(fig)
+
+    fig, ax = plt.subplots()
+
+    image = plt.imread("images/ist.jpeg")
+
+    top_right_corner = map.get_coordinates(*TOP_RIGHT_CORNER).reshape((2,))
+    bottom_left_corner = map.get_coordinates(*BOTTOM_LEFT_CORNER).reshape((2,))
+    x_lims = [
+        round(bottom_left_corner[0]) - round(origin[0]),
+        round(top_right_corner[0]) - round(origin[0]),
+    ]
+    y_lims = [
+        round(bottom_left_corner[1]) - round(origin[1]),
+        round(top_right_corner[1]) - round(origin[1]),
+    ]
+    ax.set_xlim(x_lims[0], x_lims[1])
+    ax.set_ylim(y_lims[0], y_lims[1])
+
+    ax.set_title("Click in the start position")
+
+    ax.imshow(image, extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]])
+
+    points = {"start": None, "end": None}
+    cid = fig.canvas.mpl_connect(
+        "button_press_event", lambda event: onclick(event, fig, points)
+    )
+
+    plt.show()
+
+    # FIXME: Remove after introducing inverse transformation
+    points["start"] = np.array([38.737953, -9.138711])
+    points["end"] = np.array([38.736911, -9.139010])
+
+    return map.get_path(points["start"], points["end"]), points["start"]
+
+
 def main():
     global thread_shutdown
-    global ekf
 
-    path = map.get_path(START, END)
+    path, start = choose_path()
     oriented_path = map.orient_path(path)
 
     # Set initial theta
     ekf = EKF(
         np.concatenate(
-            [map.get_coordinates(*START).reshape((2,)), [oriented_path[0][2]]]
+            [map.get_coordinates(*start).reshape((2,)), [oriented_path[0][2]]]
         ),
         FREQUENCY,
     )
 
     threads = {
-        "sensor_thread": Thread(target=sensor_thread),
-        "controller_thread": Thread(target=control_thread, args=(oriented_path,)),
+        "sensor_thread": Thread(target=sensor_thread, args=(ekf,)),
+        "controller_thread": Thread(target=control_thread, args=(oriented_path, ekf)),
     }
 
     for t in threads.values():
         t.start()
 
     try:
-        start_gui(path)
+        start_gui(path, ekf)
     except Exception:
         print(traceback.format_exc())
     finally:
