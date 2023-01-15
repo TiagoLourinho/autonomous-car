@@ -18,9 +18,10 @@ from constants import (
 
 
 class MyTransformer:
-    """Transformer that projects (lat, lon) ECEF into (x, y) ENU"""
+    """Coordinate and Reference Frame Transformer"""
 
     def transform(self, lat, lon):
+        """Transforms (lat, lon) ECEF into (e, n) ENU"""
         wgs84_geod = CRS.from_epsg(4326)
         wgs84_geoc = CRS.from_epsg(4978)
         transformer = Transformer.from_crs(wgs84_geod, wgs84_geoc)
@@ -37,6 +38,35 @@ class MyTransformer:
                         @ R_x(np.pi / 2 - math.radians(ORIGIN[0]))
                     )
                 ]
+            )[:2]
+        )
+
+    def invtransform(self, e, n):
+        """Transforms (e, n) ENU into (lat, lon) ECEF"""
+        wgs84_geod = CRS.from_epsg(4326)
+        wgs84_geoc = CRS.from_epsg(4978)
+        transformer = Transformer.from_crs(wgs84_geod, wgs84_geoc)
+        invtransformer = Transformer.from_crs(wgs84_geoc, wgs84_geod)
+
+        xyzORIGIN = np.array([*transformer.transform(ORIGIN[0], ORIGIN[1], 89)])
+        enuPoint = np.array([e, n, 0])
+
+        xyzPoint = tuple(
+            np.array(
+                [
+                    *(
+                        enuPoint
+                        @ R_x(math.radians(ORIGIN[0]) - np.pi / 2)
+                        @ R_z(-math.radians(ORIGIN[1]) - np.pi / 2)
+                        + xyzORIGIN
+                    )
+                ]
+            )
+        )
+
+        return tuple(
+            np.array(
+                [*invtransformer.transform(xyzPoint[0], xyzPoint[1], xyzPoint[2])]
             )[:2]
         )
 
@@ -251,13 +281,15 @@ class Map:
         #         for step in self.gmaps.nearest_roads(new_path)
         #     ]
         # )
-        
+
         # Get rid of 2-way roads
         temp = []
         originalIndex = -1
         for step in self.gmaps.nearest_roads(new_path):
             if originalIndex != step["originalIndex"]:
-                temp.append([step["location"]["latitude"], step["location"]["longitude"]])
+                temp.append(
+                    [step["location"]["latitude"], step["location"]["longitude"]]
+                )
                 originalIndex = step["originalIndex"]
 
         origin_coord = self.transformer.transform(start[0], start[1])
