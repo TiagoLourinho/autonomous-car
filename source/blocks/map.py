@@ -186,7 +186,7 @@ class Map:
         distance = haversine(point1, point2)
 
         # Set the number of points you want to generate along the line
-        num_points = int(distance * 200)
+        num_points = int(distance * 400)
 
         # Calculate the latitude and longitude increments for each point
         lat_inc = (end[0] - start[0]) / (num_points - 1)

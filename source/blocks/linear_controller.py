@@ -78,6 +78,7 @@ class Controller:
             world_error,
         )
         v = self.kv * bot_error[0]
+        if v > 20: v = 20
         ws = self.ki * bot_error[1] + self.ks * bot_error[2]
         """ derivative = np.array(
             [
