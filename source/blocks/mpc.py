@@ -25,7 +25,7 @@ class MPC_Controller:
         state_next = vertcat(
         np.cos(theta)*np.cos(phi)*V,
         np.sin(theta)*np.cos(phi)*V,
-        np.sin(phi)/L,
+        np.sin(phi)*V/L,
         ws,
         )
 
@@ -48,40 +48,40 @@ class MPC_Controller:
         mpc = do_mpc.controller.MPC(self.model)
 
         setup_mpc = {
-            'n_horizon': 10,
+            'n_horizon': 5,
             't_step': 0.1,
             'n_robust': 1,
             'store_full_solution': False,
         }
         mpc.set_param(**setup_mpc)
 
-        mterm = 10*(self.x-point[0])**2 + 10*(self.y-point[1])**2 
+        mterm = 100*(self.x-point[0])**2 + 100*(self.y-point[1])**2 #+ self.phi**2 + self.theta**2
         lterm = (self.x-point[0])**2 + (self.y-point[1])**2 
 
         mpc.set_objective(mterm=mterm, lterm=lterm)
 
         mpc.set_rterm(
-        V=1e-2,
+        V=0,
         ws=0
         )
 
         # Lower bounds on states:
-        mpc.bounds['lower','_x', 'x'] = -10000
-        mpc.bounds['lower','_x', 'y'] = -10000
-        mpc.bounds['lower','_x', 'theta'] = -4*np.pi
+        mpc.bounds['lower','_x', 'x'] = -1000000
+        mpc.bounds['lower','_x', 'y'] = -1000000
+        mpc.bounds['lower','_x', 'theta'] = -2*np.pi
         mpc.bounds['lower','_x', 'phi'] = -np.pi/3
         # Upper bounds on states
-        mpc.bounds['upper','_x', 'x'] = 10000
-        mpc.bounds['upper','_x', 'y'] = 10000
-        mpc.bounds['upper','_x', 'theta'] = 4*np.pi
+        mpc.bounds['upper','_x', 'x'] = 1000000
+        mpc.bounds['upper','_x', 'y'] = 1000000
+        mpc.bounds['upper','_x', 'theta'] = 2*np.pi
         mpc.bounds['upper','_x', 'phi'] = np.pi/3
 
         # Lower bounds on inputs:
         mpc.bounds['lower','_u', 'V'] = 0
         mpc.bounds['lower','_u', 'ws'] = 0
         # Lower bounds on inputs:
-        mpc.bounds['upper','_u', 'V'] = 45
-        mpc.bounds['upper','_u', 'ws'] = 45
+        mpc.bounds['upper','_u', 'V'] = 800
+        mpc.bounds['upper','_u', 'ws'] = 800
 
         #mpc.scaling['_x', 'x'] = 2
         #mpc.scaling['_x', 'y'] = 2
@@ -112,7 +112,7 @@ class MPC_Controller:
         u0 = mpc.make_step(state0)
         state0 = simulator.make_step(u0)
 
-        return np.array([u0[0][0], u0[1][0]]), state0
+        return np.array([u0[0][0], u0[1][0]])
 
 
 def simulations(mpc, simulator):
@@ -167,6 +167,7 @@ def main():
             thetas.append(float(line.split()[2]))
 
     j=0
+    open('test.txt', 'w').close()
     point = np.array([0,0,0,0])
     for i in range(len(lines)):
         print("REF:"*30, [xs[i], ys[i]])
@@ -176,10 +177,15 @@ def main():
             print("POINT:", [point[0], point[1]])
             print(j)
             print(np.sqrt((xs[i]-point[0])**2 + (ys[i]-point[1])**2)**2)
-            print(np.linalg.norm(np.array([xs[i], ys[i]]) - np.array([point[0], point[1]]))**2)
-            if np.sqrt((xs[i]-point[0])**2 + (ys[i]-point[1])**2)**2 < 2:
+            #print(np.linalg.norm(np.array([xs[i], ys[i]]) - np.array([point[0], point[1]]))**2)
+            with open('test.txt', 'a') as f:
+                f.write(f"\n\nREF: {[xs[i], ys[i]]}")
+                f.write(f"\nPOS: {[point[0], point[1]]}")
+                f.write(f"\nCONTROL: {u0}")
+                f.write(f"\nDIST TO NEXT POINT: {np.sqrt((xs[i]-point[0])**2 + (ys[i]-point[1])**2)**2}")
+            if np.sqrt((xs[i]-point[0])**2 + (ys[i]-point[1])**2)**2 < 3:
                 j+=1
-                if j==4:
+                if j==7:
                     quit()
                 break
 

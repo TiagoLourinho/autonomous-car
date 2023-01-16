@@ -12,7 +12,7 @@ from blocks import EKF, Controller, Map, Sensors
 from blocks.mpc import MPC_Controller
 from constants import *
 
-# from blocks.mpc import MPC_Controller
+from blocks.mpc import MPC_Controller
 
 
 FREQUENCY = 100  # Hz
@@ -71,10 +71,14 @@ def control_thread(oriented_path, ekf):
 
     global thread_shutdown
 
+    i=0
     for point in oriented_path:
+        i+=1
         while True:
+            if i==2:
+                return
 
-            pose = ekf.get_current_state()[:3]
+            pose = ekf.get_current_state()[:4]
             current_control = controller.following_trajectory(point, pose)
 
             ekf.predict(current_control)
@@ -82,10 +86,6 @@ def control_thread(oriented_path, ekf):
             sleep(1 / FREQUENCY)
 
             position = ekf.get_current_state()[:2]
-
-            # Move to next point if close enough to the current one
-            if np.linalg.norm(position - point[:2]) < 3:  # Standard road width
-                break
 
             if thread_shutdown:
                 return
