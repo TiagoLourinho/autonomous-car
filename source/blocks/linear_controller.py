@@ -61,12 +61,12 @@ class Controller:
 
         Inputs:
             -ref: a numpy array with dimensions 3x1 (x_ref,y_ref,theta_ref) of planned trajectory
-            -position : an array with with dimensions 3x1 (x,y,theta) with estimated positions
+            -position : an array with with dimensions 3x1 (x,y,theta,phi) with estimated positions
         Outputs:
             -position : next position
             -np.array([v,ws]): control signal
         """
-        world_error = ref - position
+        world_error = ref - position[:3]
         bot_error = np.matmul(
             np.array(
                 [

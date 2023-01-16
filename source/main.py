@@ -23,13 +23,10 @@ thread_shutdown = False
 
 # Blocks
 map = Map()
-<<<<<<< HEAD
+
 controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.46)
-# controller = MPC_Controller()
-=======
-controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.2)
 #controller = MPC_Controller()
->>>>>>> 7f71006 (fixing conflicts)
+
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 
 
@@ -76,21 +73,21 @@ def control_thread(oriented_path, ekf):
 
     global thread_shutdown
 
-    i=0
     for point in oriented_path:
-        i+=1
         while True:
-            if i==2:
-                return
 
             pose = ekf.get_current_state()[:4]
             current_control = controller.following_trajectory(point, pose)
-
+            print(current_control)
             ekf.predict(current_control)
 
             sleep(1 / FREQUENCY)
 
             position = ekf.get_current_state()[:2]
+
+            # Move to next point if close enough to the current one
+            if np.linalg.norm(position - point[:2]) < 3:  # Standard road width
+                break
 
             if thread_shutdown:
                 return
