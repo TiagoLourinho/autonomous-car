@@ -129,6 +129,33 @@ class Map:
         )
 
         return np.array([rotation_matrix @ point for point in points])
+    
+    def verify_point(self, point):
+        """Checks if the point is valid
+
+        Parameters
+        ----------
+
+        point: np.array of shape (2, )
+            Point to be checked
+
+        Returns
+        -------
+
+        bool
+            True if the point is within the map, False otherwise
+        """
+        new_point = self.gmaps.nearest_roads(point)
+        new_point = np.array([new_point[0]["location"]["latitude"], new_point[0]["location"]["longitude"]])
+
+        # disance between the point and the nearest road
+        distance = haversine(point, new_point)
+
+        # maybe pass to x, y so that we can better understand the distance limit
+
+        if distance < 0.01:
+            return True
+        return False
 
     def get_coordinates(self, latitude: float, longitude: float):
         """Transforms latitude and longitude to cartesian coordinates
@@ -308,12 +335,16 @@ class Map:
         # Get rid of 2-way roads
         temp = []
         originalIndex = -1
-        for step in self.gmaps.nearest_roads(new_path):
-            if originalIndex != step["originalIndex"]:
-                temp.append(
-                    [step["location"]["latitude"], step["location"]["longitude"]]
-                )
-                originalIndex = step["originalIndex"]
+        segment_size = 100
+        path_segments = [new_path[i:i + segment_size] for i in range(0, len(new_path), segment_size)]
+        for segment in path_segments:
+            segment_result = self.gmaps.nearest_roads(segment)
+            for step in segment_result:
+                if originalIndex != step["originalIndex"]:
+                    temp.append(
+                        [step["location"]["latitude"], step["location"]["longitude"]]
+                    )
+                    originalIndex = step["originalIndex"]
 
         origin_coord = self.transformer.transform(start[0], start[1])
 

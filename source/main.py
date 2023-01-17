@@ -219,20 +219,26 @@ def choose_path():
     
     points["start"] = map.transformer.invtransform(points["start"][0], points["start"][1])
     points["end"] = map.transformer.invtransform(points["end"][0], points["end"][1])
+
+    if map.verify_point(points["start"]) and map.verify_point(points["end"]):
+        print("Valid path")
+    else:
+        print("Invalid path")
+        exit(1)
     
-    return map.get_path(points["start"], points["end"]), points["start"]
+    return map.get_path(points["start"], points["end"])
 
 
 def main():
     global thread_shutdown
 
-    path, start = choose_path()
+    path= choose_path()
     oriented_path = map.orient_path(path)
 
     # Set initial theta
     ekf = EKF(
         np.concatenate(
-            [map.get_coordinates(*start).reshape((2,)), [oriented_path[0][2]]]
+            [path[0], [oriented_path[0][2]]]
         ),
         FREQUENCY,
     )
