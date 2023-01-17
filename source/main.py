@@ -10,6 +10,7 @@ import numpy as np
 
 from blocks import EKF, Controller, Map, Sensors
 from blocks.mpc import MPC_Controller
+from blocks.v_controller import VelocityController
 from constants import *
 
 from blocks.mpc import MPC_Controller
@@ -231,9 +232,15 @@ def choose_path():
 
 def main():
     global thread_shutdown
+    path = choose_path()
+    #Remove duplicate points
+    _, idx = np.unique(path, axis=0, return_index=True)
+    path = path[np.sort(idx)]
 
-    path= choose_path()
     oriented_path = map.orient_path(path)
+
+    #cont = VelocityController(path)
+    #ref_velocities = cont.get_ref_velocities()
 
     # Set initial theta
     ekf = EKF(
