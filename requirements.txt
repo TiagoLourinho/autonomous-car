@@ -5,3 +5,4 @@ numpy>=1.23.5
 pyproj>=3.4.1
 pyserial>=3.5
 scipy>=1.9.1
+do_mpc>=4.4.0
