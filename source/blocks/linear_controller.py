@@ -33,7 +33,7 @@ class Controller:
         self.ki = (w_n**2 - w_ref**2) / abs(self.v_ref)
         self.h = h
         self.L = L
-
+        self.last_error = np.zeros((3,1))
     def print_parameters(self):
         """
         Print parameters of the controller
@@ -60,13 +60,14 @@ class Controller:
         Computes next position and control signal given the current position and the next point using the linear controller
 
         Inputs:
-            -ref: a numpy array with dimensions 3x1 (x_ref,y_ref,theta_ref) of planned trajectory
-            -position : an array with with dimensions 3x1 (x,y,theta,phi) with estimated positions
+            -ref: a numpy array with dimensions 4x1 (x_ref,y_ref,theta_ref_phi_ref) of planned trajectory
         Outputs:
             -position : next position
             -np.array([v,ws]): control signal
         """
-        world_error = ref - position[:3]
+        error = np.zeros((3,1))
+        w_ref = np.sin(ref[3])*self.v_ref/self.L
+        world_error = ref[:-1] - position[:-1]
         bot_error = np.matmul(
             np.array(
                 [
@@ -77,24 +78,17 @@ class Controller:
             ),
             world_error,
         )
-        v = self.kv * bot_error[0]
-        if v > 20: v = 20
-        ws = self.ki * bot_error[1] + self.ks * bot_error[2]
-        """ derivative = np.array(
-            [
-                [np.cos(position[2]), 0],
-                [np.sin(position[2]), 0],
-                [np.tan(position[3]) / self.L, 0],
-                [0, 1],
-            ]
-        )
-        position = position + self.h * np.matmul(derivative, np.array([v, ws]))
-        if abs(position[3]) > np.pi / 8:
-            position[3] = np.sign(position[3]) * np.pi / 8
-        return position, np.array([v, ws]) """
-        return np.array([v, ws])
+        bot_error = bot_error[:,np.newaxis]
+        u = np.array([-self.kv*self.last_error[0], -self.ki*self.last_error[1]-self.ks*self.last_error[2]])
+        error_dynamics =  np.array([[0, w_ref, 0],[ -w_ref, 0, self.v_ref*np.cos(ref[3])], [0, 0 ,0]])@bot_error + np.array([[np.cos(ref[3]) ,0], [0 ,0], [0, 1]])@u
+        error = bot_error + self.h*error_dynamics
+        v = self.kv * error[0]
+        if v > 10: v = [10]
+        ws = self.ki * error[1] + self.ks * error[2]
+        self.last_error = error
+        return np.array([v, ws]).reshape((2,))
 
-    pass
+ 
 
     def following_reference(self, ref: np.array, num_points: int = None) -> np.array:
         """
