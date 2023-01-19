@@ -85,18 +85,16 @@ class Sensors:
             Optional[np.ndarray]: An array containing the measured velocities
         """
         if self._simulated:
-            """z_rotation = self._world_view[0]
+            z_rotation = self._world_view[0]
             measured_z_rotation = np.random.normal(z_rotation, self.ROTATION_MEASUREMENT_STD[2])
+            measured_z_velocity = np.random.normal(self._world_view[2][-1], self.ROTATION_MEASUREMENT_STD[2])
             rot_mat = np.array((
                 (np.cos(measured_z_rotation), -np.sin(measured_z_rotation)),
                 (np.sin(measured_z_rotation), np.cos(measured_z_rotation)),
             ))
-            # FIXME: should we still integrate the acceleration in simulation mode?
             velocity = rot_mat @ self._world_view[2][:2]
             measured_velocity = np.random.normal(velocity, self.ACCELERATION_MEASUREMENT_STD[:2])
-            return np.array((*measured_velocity, measured_z_rotation))"""
-
-            return np.random.normal(self._world_view[2], self.IMU_MEASUREMENT_STD)
+            return np.array((*measured_velocity, measured_z_velocity))
         else:
             raise NotImplementedError(
                 "Real IMU data acquisition is not yet implemented"
