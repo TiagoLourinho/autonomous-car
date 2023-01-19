@@ -355,19 +355,18 @@ class Map:
         return coords
 
     def orient_path(self, path: np.array) -> np.array:
-
-        oriented_path = np.zeros(shape=(len(path), 3))
+        oriented_path = np.zeros(shape=(len(path), 4))
 
         for i in range(0, len(path)):
             oriented_path[i][:2] = path[i]
 
             if i < len(path) - 1:
-                # Add theta
-                oriented_path[i][2] = np.arctan2(
+                # Add phi
+                oriented_path[i][3] = np.arctan2(
                     (path[i + 1][1] - path[i][1]), (path[i + 1][0] - path[i][0])
                 )
-
             else:
-                oriented_path[i][2] = oriented_path[i - 1][2]
+                oriented_path[i][3] = oriented_path[i - 1][3]
+            oriented_path[i][2] = oriented_path[i][3]
 
         return oriented_path
