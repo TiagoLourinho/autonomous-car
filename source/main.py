@@ -25,8 +25,8 @@ thread_shutdown = False
 # Blocks
 map = Map()
 
-#controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.46)
-#controller = MPC_Controller()
+# controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.46)
+# controller = MPC_Controller()
 
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 
@@ -74,36 +74,44 @@ def control_thread(oriented_path, ekf, controller):
 
     global thread_shutdown
 
-    M=1190
+    M = 1190
     P0 = 500
     positions = []
     control_signals = []
     energy_used = 0
     energy_usage = []
-    j=-1
+    j = -1
     for i in range(len(oriented_path)):
         while True:
             position = ekf.get_current_state()[:2]
             positions.append(position)
-            j +=1
+            j += 1
 
             # Move to next point if close enough to the current one
-            if np.linalg.norm(position - oriented_path[i][:2]) < 2.5 and i <= len(oriented_path)-3:  # Standard road width
+            if (
+                np.linalg.norm(position - oriented_path[i][:2]) < 2.5
+                and i <= len(oriented_path) - 3
+            ):  # Standard road width
                 break
-            elif np.linalg.norm(position - oriented_path[i][:2]) < 0.5 and i > len(oriented_path)-3:
+            elif (
+                np.linalg.norm(position - oriented_path[i][:2]) < 0.5
+                and i > len(oriented_path) - 3
+            ):
                 break
 
             pose = ekf.get_current_state()[:6]
-            current_control = controller.following_trajectory(oriented_path[i], pose, energy_used)
+            current_control = controller.following_trajectory(
+                oriented_path[i], pose, energy_used
+            )
             control_signals.append(control_signals)
-            
+
             ekf.predict(current_control)
 
             sleep(1 / FREQUENCY)
 
-            #Energy usage
-            d=np.linalg.norm(position - positions[j-1])
-            v = np.sqrt(pose[4]**2 + pose[5]**2)
+            # Energy usage
+            d = np.linalg.norm(position - positions[j - 1])
+            v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
             energy_used += M * d * v + P0 * (1 / FREQUENCY)
             energy_usage.append(energy_used)
 
@@ -196,6 +204,8 @@ def choose_path():
             points["start"] = (event.xdata, event.ydata)
 
             # Update plot
+            fig.gca().plot(event.xdata, event.ydata, "or", label="Start")
+            plt.legend()
             fig.gca().set_title("Click in the end position")
             fig.canvas.draw()
             fig.canvas.flush_events()
@@ -231,11 +241,13 @@ def choose_path():
     )
 
     plt.show()
-    
+
     points["start"] /= np.array([map.scale_x, map.scale_y])
     points["end"] /= np.array([map.scale_x, map.scale_y])
-    
-    points["start"] = map.transformer.invtransform(points["start"][0], points["start"][1])
+
+    points["start"] = map.transformer.invtransform(
+        points["start"][0], points["start"][1]
+    )
     points["end"] = map.transformer.invtransform(points["end"][0], points["end"][1])
 
     if map.verify_point(points["start"]) and map.verify_point(points["end"]):
@@ -243,14 +255,14 @@ def choose_path():
     else:
         print("Invalid path")
         exit(1)
-    
+
     return map.get_path(points["start"], points["end"])
 
 
 def main():
     global thread_shutdown
     path = choose_path()
-    #Remove duplicate points
+    # Remove duplicate points
     _, idx = np.unique(path, axis=0, return_index=True)
     path = path[np.sort(idx)]
 
@@ -258,18 +270,17 @@ def main():
 
     cont = VelocityController(path)
 
-
     # Set initial theta
     ekf = EKF(
-        np.concatenate(
-            [path[0], [oriented_path[0][2]]]
-        ),
+        np.concatenate([path[0], [oriented_path[0][2]]]),
         FREQUENCY,
     )
 
     threads = {
         "sensor_thread": Thread(target=sensor_thread, args=(ekf,)),
-        "controller_thread": Thread(target=control_thread, args=(oriented_path, ekf, cont)),
+        "controller_thread": Thread(
+            target=control_thread, args=(oriented_path, ekf, cont)
+        ),
     }
 
     for t in threads.values():
