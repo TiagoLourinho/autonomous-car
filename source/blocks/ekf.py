@@ -15,7 +15,7 @@ class EKF:
         """
 
         self.car_L = 2.46
-        self.max_wheel_angle = 30
+        self.max_wheel_angle = 25
 
         self.time_step = 1 / predict_frequency
 
