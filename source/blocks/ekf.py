@@ -22,6 +22,8 @@ class EKF:
         self.state = np.zeros(shape=(8,))
         self.state[: len(initial_estimate)] = initial_estimate
 
+        self.predicted = self.state.copy()  # Used in simulation
+
         self.cov = np.identity(8) / 10
 
         self.lock = Lock()
@@ -76,6 +78,7 @@ class EKF:
             g = lambda controls, state: A @ state + B @ controls
 
             self.state = g(control, self.state)
+            self.predicted = g(control, self.predicted)
             self.cov = G @ self.cov @ G.T + R
 
             # Account for maximum steering angle
@@ -165,6 +168,12 @@ class EKF:
         with self.lock:
 
             return self.state
+
+    def get_predicted_state(self) -> np.array:
+        """Returns the predicted state (only using the model, used in simulation as the real pose)"""
+        with self.lock:
+
+            return self.predicted
 
     def get_current_cov(self) -> np.array:
         """Returns the current covariance estimate"""

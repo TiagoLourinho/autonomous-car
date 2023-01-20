@@ -30,43 +30,57 @@ class Sensors:
         self._world_view = None
         self._acquiring = False
         self._buffer = b""
-        
+
         self._imu_timestamp = 0
         self._last_imu_measurement = np.array([0.0, 0.0, 0.0])
         self._last_gps_measurement = np.array([0.0, 0.0])
-        
+
         if self._port is None and not self._simulated:
             raise ValueError("Port must not be None when using real sensor data")
-        self._serial = serial.Serial(self._port, 115200, bytesize=8, timeout=2, parity="N", xonxoff=0, stopbits=1)
-        
+        self._serial = serial.Serial(
+            self._port, 115200, bytesize=8, timeout=2, parity="N", xonxoff=0, stopbits=1
+        )
+
     def _process_buffer(self):
         lines = self._buffer.split(b"\n")
         if len(lines) == 1:
             return
         self._buffer = lines[-1]
         for line in lines:
-            rotation_line = re.findall(r"r (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+)", line)
+            rotation_line = re.findall(
+                r"r (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+)", line
+            )
             if len(rotation_line):
                 current_time = int(rotation_line[0][-1])
                 if self._imu_timestamp == 0:
                     self._imu_timestamp = current_time
-                self._world_view[0] += (current_time - self._imu_timestamp) * 1e-3 * float(rotation_line[0][2])
+                self._world_view[0] += (
+                    (current_time - self._imu_timestamp)
+                    * 1e-3
+                    * float(rotation_line[0][2])
+                )
                 self._imu_timestamp = current_time
                 continue
-            
-            acceleration_line = re.findall(r"a (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+)", line)
+
+            acceleration_line = re.findall(
+                r"a (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+)", line
+            )
             if len(acceleration_line):
                 current_time = int(acceleration_line[0][-1])
                 if self._imu_timestamp == 0:
                     self._imu_timestamp = current_time
-                self._world_view[1] += (current_time - self._imu_timestamp) * 1e-3 * np.array([float(a) for a in acceleration_line[0][-1]])
+                self._world_view[1] += (
+                    (current_time - self._imu_timestamp)
+                    * 1e-3
+                    * np.array([float(a) for a in acceleration_line[0][-1]])
+                )
                 self._imu_timestamp = current_time
                 continue
-            
+
             gps_line = re.findall(r"g (-?\d+\.\d+) (-?\d+\.\d+)", line)
             if len(gps_line):
                 self._world_view[1] = np.array([*gps_line[0][:-1]])
-                
+
         self._last_gps_measurement = self._world_view[1]
         self._last_imu_measurement = self._world_view[2]
 
@@ -122,14 +136,23 @@ class Sensors:
         """
         if self._simulated:
             z_rotation = self._world_view[0]
-            measured_z_rotation = np.random.normal(z_rotation, self.ROTATION_MEASUREMENT_STD[2])
-            measured_z_velocity = np.random.normal(self._world_view[2][-1], self.ROTATION_MEASUREMENT_STD[2])
-            rot_mat = np.array((
-                (np.cos(measured_z_rotation), -np.sin(measured_z_rotation)),
-                (np.sin(measured_z_rotation), np.cos(measured_z_rotation)),
-            ))
+            measured_z_rotation = np.random.normal(
+                z_rotation, self.ROTATION_MEASUREMENT_STD[2]
+            )
+            measured_z_velocity = np.random.normal(
+                self._world_view[2][-1], self.ROTATION_MEASUREMENT_STD[2]
+            )
+            rot_mat = np.array(
+                (
+                    (np.cos(measured_z_rotation), -np.sin(measured_z_rotation)),
+                    (np.sin(measured_z_rotation), np.cos(measured_z_rotation)),
+                )
+            )
             velocity = rot_mat @ self._world_view[2][:2]
-            measured_velocity = np.random.normal(velocity, self.ACCELERATION_MEASUREMENT_STD[:2])
+            measured_velocity = np.random.normal(
+                velocity, self.ACCELERATION_MEASUREMENT_STD[:2]
+            )
+            measured_velocity = np.linalg.inv(rot_mat) @ measured_velocity
             return np.array((*measured_velocity, measured_z_velocity))
         else:
             return self._last_imu_measurement

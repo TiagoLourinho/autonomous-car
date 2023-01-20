@@ -51,18 +51,24 @@ def sensor_thread(ekf):
 
         sensors.acquire()
 
-        state = ekf.get_current_state()
+        # The estimated state is no longer needed here, left it behind just to be clear about the changes made
+        estimated_state = ekf.get_current_state()
+        real_state = ekf.get_predicted_state()
 
-        sensors.update_world_view(state[2], state[:2], state[4:7], None)
+        sensors.update_world_view(real_state[2], real_state[:2], real_state[4:7], None)
 
         if time.time() - last_gps_poll >= gps_poll_freq:
             pos = sensors.get_GPS_position()
-            pos = state[:2]
+
+            # pos = estimated_state[:2]
+
             ekf.update(pos, "gps")
             last_gps_poll = time.time()
         if time.time() - last_imu_poll >= imu_poll_freq:
             velocities = sensors.get_IMU_data()
-            velocities = state[4:7]
+
+            # velocities = estimated_state[4:7]
+
             ekf.update(velocities, "imu")
             last_imu_poll = time.time()
 
@@ -127,25 +133,44 @@ def update_animation(n, state, ekf):
 
     axes = state["artists"]["axes"]
 
-    position = ekf.get_current_state()[:3]
+    estimated_position = ekf.get_current_state()[:3]
 
-    state["artists"]["car_position"].set_data(
-        position[0] - round(origin[0]), position[1] - round(origin[1])
+    real_position = ekf.get_predicted_state()[:3]
+
+    state["artists"]["estimated_car_position"].set_data(
+        estimated_position[0] - round(origin[0]),
+        estimated_position[1] - round(origin[1]),
     )
 
-    state["artists"]["car_theta"] = axes.arrow(
-        position[0] - round(origin[0]),
-        position[1] - round(origin[1]),
-        5 * np.cos(position[2]),
-        5 * np.sin(position[2]),
+    state["artists"]["estimated_car_theta"] = axes.arrow(
+        estimated_position[0] - round(origin[0]),
+        estimated_position[1] - round(origin[1]),
+        5 * np.cos(estimated_position[2]),
+        5 * np.sin(estimated_position[2]),
         head_width=3,
         head_length=3,
         color="b",
     )
 
+    state["artists"]["real_car_position"].set_data(
+        real_position[0] - round(origin[0]), real_position[1] - round(origin[1])
+    )
+
+    state["artists"]["real_car_theta"] = axes.arrow(
+        real_position[0] - round(origin[0]),
+        real_position[1] - round(origin[1]),
+        5 * np.cos(real_position[2]),
+        5 * np.sin(real_position[2]),
+        head_width=3,
+        head_length=3,
+        color="g",
+    )
+
     return [
-        state["artists"]["car_position"],
-        state["artists"]["car_theta"],
+        state["artists"]["estimated_car_position"],
+        state["artists"]["estimated_car_theta"],
+        state["artists"]["real_car_position"],
+        state["artists"]["real_car_theta"],
     ]
 
 
@@ -182,10 +207,15 @@ def start_gui(path, ekf):
         ax.plot(x, y, "ro", markersize=3)
 
     state["artists"]["axes"] = ax
-    (state["artists"]["car_position"],) = ax.plot(
-        *ekf.get_current_state()[:2], "bo", markersize=5
+    (state["artists"]["estimated_car_position"],) = ax.plot(
+        *ekf.get_current_state()[:2], "bo", markersize=5, label="Estimated Pose"
     )
-    state["artists"]["car_theta"] = None
+    state["artists"]["estimated_car_theta"] = None
+    (state["artists"]["real_car_position"],) = ax.plot(
+        *ekf.get_predicted_state()[:2], "go", markersize=5, label="Real Pose"
+    )
+    state["artists"]["real_car_theta"] = None
+    ax.legend()
 
     anim = animation.FuncAnimation(
         fig,
