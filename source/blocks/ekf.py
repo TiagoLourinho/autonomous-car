@@ -98,6 +98,23 @@ class EKF:
                 )
             )
 
+            # Account for maximum steering angle
+            self.predicted[3] = (
+                min(
+                    np.deg2rad(
+                        self.max_wheel_angle,
+                    ),
+                    self.predicted[3],
+                )
+                if self.predicted[3] > 0
+                else max(
+                    np.deg2rad(
+                        -self.max_wheel_angle,
+                    ),
+                    self.predicted[3],
+                )
+            )
+
     def update(self, measurements: np.array, sensor: str) -> None:
         """Update step"""
         with self.lock:
