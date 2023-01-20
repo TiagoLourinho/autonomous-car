@@ -29,7 +29,7 @@ map = Map()
 # controller = MPC_Controller()
 
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
-
+control_signals = [[],[]]
 
 def sensor_thread(ekf):
     """Function to run in a thread, checking for new sensor data and updating EKF"""
@@ -79,11 +79,10 @@ def control_thread(oriented_path, ekf, controller):
     sleep(5)  # Load GUI
 
     global thread_shutdown
-
+    global control_signals
     M = 1190
     P0 = 500
     positions = []
-    control_signals = []
     energy_used = 0
     energy_usage = []
     j = -1
@@ -109,7 +108,8 @@ def control_thread(oriented_path, ekf, controller):
             current_control = controller.following_trajectory(
                 oriented_path[i], pose, energy_used
             )
-            control_signals.append(control_signals)
+            control_signals[0].append(current_control.tolist()[0])
+            control_signals[1].append(current_control.tolist()[1])
 
             ekf.predict(current_control)
 
@@ -332,7 +332,16 @@ def main():
         thread_shutdown = True
         for t in threads.values():
             t.join()
-
-
+    plt.figure()
+    plt.plot(control_signals[0])
+    plt.grid(True)
+    plt.xlabel(f"Time x {1/FREQUENCY:.2f}")
+    plt.ylabel("V [m/s]")
+    plt.figure()
+    plt.plot(control_signals[1])
+    plt.grid(True)
+    plt.xlabel(f"Time x {1/FREQUENCY:.2f}")
+    plt.ylabel(r'$\omega_{s}$ [rad/s]')
+    plt.show()
 if __name__ == "__main__":
     main()
