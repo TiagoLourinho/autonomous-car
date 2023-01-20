@@ -46,19 +46,43 @@ def get_max_velocities(path: list, vmax: float) -> list:
     Computes maximum velocity allowed for each stretch, based on if the path between 2 consecutive strethes 
     is linear or a curve. If its a curve, the tighter it is the lower the maximum allowed velocity is
     """
+    flag = 0
+    flag1 = 0
     velocities = []
     for i in range(len(path)):
-        if i <= 1:
+        if i <= 1 or flag:
+            flag = 0
+            continue
+        if flag == 0 and flag1:
+            flag1 = 0
             continue
         beta = stretch_angle(path[i-2], path[i-1], path[i])
         if beta < np.pi/6:
             beta=0
-        if beta != 0 and beta < np.pi/2 and i != len(path)-1 and len(velocities)>0:
-            velocities[-1] = vmax*(1-1/(3.5*beta)*np.pi*1/4)
-            velocities.append(vmax*(1-1/(3.5*beta)*np.pi*1/4))
-        elif beta != 0 and i != len(path)-1 and len(velocities)>0:
-            velocities[-1] = vmax*(1-1/(beta)*np.pi*1/4)
-            velocities.append(vmax*(1-1/(beta)*np.pi*1/4))
+
+        if beta != 0 and beta < np.pi/4 and i != len(path)-1 and len(velocities) > 0:
+            velocities[-1] = vmax*(beta/np.pi)*0.7
+            velocities.append(vmax*(beta/np.pi)*0.7)
+            velocities.append(vmax*(beta/np.pi)*0.7)
+            velocities.append(vmax*(beta/np.pi)*0.7)
+            flag = 1
+            flag1 = 1
+
+        elif beta != 0 and beta < np.pi/2 and i !=len(path)-1 and len(velocities) > 0:
+            velocities[-1] = vmax*(beta/np.pi)*0.7
+            velocities.append(vmax*(beta/np.pi)*0.7)
+            velocities.append(vmax*(beta/np.pi)*0.7)
+            velocities.append(vmax*(beta/np.pi)*0.7)
+            flag = 1
+            flag1 = 1
+
+        elif beta != 0 and i != len(path)-1 and len(velocities) > 0:
+            velocities[-1] = vmax*(beta/np.pi)*0.6
+            velocities.append(vmax*(beta/np.pi)*0.6)
+            velocities.append(vmax*(beta/np.pi)*0.6)
+            velocities.append(vmax*(beta/np.pi)*0.6)
+            flag = 1
+            flag1 = 1
         else:
             velocities.append(vmax)
     #extra one
@@ -80,7 +104,7 @@ class VelocityController:
     def __init__(self, path: list):
         self.path = path
         self.L = 2.46
-        self.Kw = 150
+        self.Kw = 10
         self.Kv = 0.6
         self.Kpos = 4
         self.deadzone = 0.2
@@ -89,7 +113,7 @@ class VelocityController:
         self.P0 = 500
         self.en_multiplier = 1.3
         self.avg_vel = 25
-        self.vmax = 20
+        self.vmax = 10
 
         self.stretches = get_path_stretches(path)
         self.energy_budget = get_energy_budget(sum(self.stretches), self.avg_vel, self.P0, self.en_multiplier, self.M)
