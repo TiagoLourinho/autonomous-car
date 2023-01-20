@@ -216,6 +216,7 @@ def start_gui(path, ekf):
     )
     state["artists"]["real_car_theta"] = None
     ax.legend()
+    ax.set_title("Simulating...")
 
     anim = animation.FuncAnimation(
         fig,
@@ -234,7 +235,7 @@ def choose_path():
             points["start"] = (event.xdata, event.ydata)
 
             # Update plot
-            fig.gca().plot(event.xdata, event.ydata, "or", label="Start")
+            fig.gca().scatter(event.xdata, event.ydata, label="Start", c="g")
             plt.legend()
             fig.gca().set_title("Click in the end position")
             fig.canvas.draw()
@@ -242,6 +243,13 @@ def choose_path():
 
         elif points["end"] is None:
             points["end"] = (event.xdata, event.ydata)
+
+            # Update plot
+            fig.gca().scatter(event.xdata, event.ydata, label="End", c="r")
+            plt.legend()
+            fig.gca().set_title("Looking for a valid path...")
+            fig.canvas.draw()
+            fig.canvas.flush_events()
             plt.close(fig)
 
     fig, ax = plt.subplots()
