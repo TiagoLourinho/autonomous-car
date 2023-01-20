@@ -1,7 +1,8 @@
-import time
+import re
 from typing import Optional
 
 import numpy as np
+import serial
 
 
 class Sensors:
@@ -28,8 +29,46 @@ class Sensors:
         self._port = port
         self._world_view = None
         self._acquiring = False
+        self._buffer = b""
+        
+        self._imu_timestamp = 0
+        self._last_imu_measurement = np.array([0.0, 0.0, 0.0])
+        self._last_gps_measurement = np.array([0.0, 0.0])
+        
         if self._port is None and not self._simulated:
             raise ValueError("Port must not be None when using real sensor data")
+        self._serial = serial.Serial(self._port, 115200, bytesize=8, timeout=2, parity="N", xonxoff=0, stopbits=1)
+        
+    def _process_buffer(self):
+        lines = self._buffer.split(b"\n")
+        if len(lines) == 1:
+            return
+        self._buffer = lines[-1]
+        for line in lines:
+            rotation_line = re.findall(r"r (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+)", line)
+            if len(rotation_line):
+                current_time = int(rotation_line[0][-1])
+                if self._imu_timestamp == 0:
+                    self._imu_timestamp = current_time
+                self._world_view[0] += (current_time - self._imu_timestamp) * 1e-3 * float(rotation_line[0][2])
+                self._imu_timestamp = current_time
+                continue
+            
+            acceleration_line = re.findall(r"a (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+)", line)
+            if len(acceleration_line):
+                current_time = int(acceleration_line[0][-1])
+                if self._imu_timestamp == 0:
+                    self._imu_timestamp = current_time
+                self._world_view[1] += (current_time - self._imu_timestamp) * 1e-3 * np.array([float(a) for a in acceleration_line[0][-1]])
+                self._imu_timestamp = current_time
+                continue
+            
+            gps_line = re.findall(r"g (-?\d+\.\d+) (-?\d+\.\d+)", line)
+            if len(gps_line):
+                self._world_view[1] = np.array([*gps_line[0][:-1]])
+                
+        self._last_gps_measurement = self._world_view[1]
+        self._last_imu_measurement = self._world_view[2]
 
     def update_world_view(
         self, rot: float, pos: np.ndarray, vel: np.ndarray, acc: np.ndarray
@@ -54,9 +93,8 @@ class Sensors:
     def acquire(self):
         """Communicates with the Arduino."""
         if not self._simulated:
-            raise NotImplementedError(
-                "Real sensor data acquisition is not yet implemented"
-            )
+            self._buffer += self._serial.read_all()
+            self._process_buffer()
 
     def get_GPS_position(self) -> Optional[np.ndarray]:
         """Get a GPS position
@@ -71,9 +109,7 @@ class Sensors:
             mean = self._world_view[1][:2]
             return np.random.normal(mean, self.GPS_MEASUREMENT_STD)
         else:
-            raise NotImplementedError(
-                "Real GPS data acquisition is not yet implemented"
-            )
+            return self._last_gps_measurement
 
     def get_IMU_data(self) -> Optional[np.ndarray]:
         """Get IMU data
@@ -96,6 +132,4 @@ class Sensors:
             measured_velocity = np.random.normal(velocity, self.ACCELERATION_MEASUREMENT_STD[:2])
             return np.array((*measured_velocity, measured_z_velocity))
         else:
-            raise NotImplementedError(
-                "Real IMU data acquisition is not yet implemented"
-            )
+            return self._last_imu_measurement

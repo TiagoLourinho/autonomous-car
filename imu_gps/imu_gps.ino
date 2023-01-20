@@ -106,20 +106,26 @@ void loop()
   // acc_x = acc_x*1e-3*g + sin(radians(rot[1])) * g;
   // acc_y = acc_y*1e-3*g - sin(radians(rot[0])) * g;
 
+  unsigned long t = millis()
+
   // Print results
   Serial.print("r ");
   Serial.print(rot[0]);
   Serial.print(" ");
   Serial.print(rot[1]);
   Serial.print(" ");
-  Serial.println(rot[2]);
+  Serial.print(rot[2]);
+  Serial.print(" ");
+  Serial.println(t);
 
   Serial.print("a ");
   Serial.print(acc_x);
   Serial.print(" ");
   Serial.print(acc_y);
   Serial.print(" ");
-  Serial.println(acc_z);
+  Serial.print(acc_z);
+  Serial.print(" ");
+  Serial.println(t);
 
   while (gpsSerial.available() > 0) {
     if (gps.encode(gpsSerial.read())) {
