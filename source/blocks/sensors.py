@@ -10,7 +10,7 @@ class Sensors:
 
     GPS_MEASUREMENT_STD = np.array((0.7, 0.7))
     ROTATION_MEASUREMENT_STD = np.array((0.01745, 0.01745, 0.01745))
-    ACCELERATION_MEASUREMENT_STD = np.array((0.1, 0.1, 0.1))
+    ACCELERATION_MEASUREMENT_STD = np.array((0.01, 0.01, 0.01))
     IMU_MEASUREMENT_STD = np.array((0.1, 0.1, 0.01745))
 
     def __init__(self, port: Optional[str] = None, simulated: bool = True):
@@ -142,17 +142,20 @@ class Sensors:
             measured_z_velocity = np.random.normal(
                 self._world_view[2][-1], self.ROTATION_MEASUREMENT_STD[2]
             )
-            rot_mat = np.array(
-                (
-                    (np.cos(measured_z_rotation), -np.sin(measured_z_rotation)),
-                    (np.sin(measured_z_rotation), np.cos(measured_z_rotation)),
-                )
-            )
-            velocity = rot_mat @ self._world_view[2][:2]
+            # rot_mat = np.array(
+            #     (
+            #         (np.cos(measured_z_rotation), -np.sin(measured_z_rotation)),
+            #         (np.sin(measured_z_rotation), np.cos(measured_z_rotation)),
+            #     )
+            # )
+            # velocity = rot_mat @ self._world_view[2][:2]
+            # measured_velocity = np.random.normal(
+            #     velocity, self.ACCELERATION_MEASUREMENT_STD[:2]
+            # )
+            # measured_velocity = np.linalg.inv(rot_mat) @ measured_velocity
             measured_velocity = np.random.normal(
-                velocity, self.ACCELERATION_MEASUREMENT_STD[:2]
+                self._world_view[2][:2], self.ACCELERATION_MEASUREMENT_STD[:2]
             )
-            measured_velocity = np.linalg.inv(rot_mat) @ measured_velocity
             return np.array((*measured_velocity, measured_z_velocity))
         else:
             return self._last_imu_measurement

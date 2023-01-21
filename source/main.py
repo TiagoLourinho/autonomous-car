@@ -29,7 +29,8 @@ map = Map()
 # controller = MPC_Controller()
 
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
-control_signals = [[],[]]
+control_signals = [[], []]
+
 
 def sensor_thread(ekf):
     """Function to run in a thread, checking for new sensor data and updating EKF"""
@@ -99,7 +100,7 @@ def control_thread(oriented_path, ekf, controller):
             ):  # Standard road width
                 break
             elif (
-                np.linalg.norm(position - oriented_path[i][:2]) < 0.5
+                np.linalg.norm(position - oriented_path[i][:2]) < 1.5
                 and i > len(oriented_path) - 3
             ):
                 break
@@ -341,7 +342,9 @@ def main():
     plt.plot(control_signals[1])
     plt.grid(True)
     plt.xlabel(f"Time x {1/FREQUENCY:.2f}")
-    plt.ylabel(r'$\omega_{s}$ [rad/s]')
+    plt.ylabel(r"$\omega_{s}$ [rad/s]")
     plt.show()
+
+
 if __name__ == "__main__":
     main()

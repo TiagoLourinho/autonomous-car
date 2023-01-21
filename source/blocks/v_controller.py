@@ -104,7 +104,7 @@ class VelocityController:
     def __init__(self, path: list):
         self.path = path
         self.L = 2.46
-        self.Kw = 10
+        self.Kw = 2.5
         self.Kv = 0.6
         self.Kpos = 4
         self.deadzone = 0.2
@@ -113,7 +113,7 @@ class VelocityController:
         self.P0 = 500
         self.en_multiplier = 1.3
         self.avg_vel = 25
-        self.vmax = 10
+        self.vmax = 3
 
         self.stretches = get_path_stretches(path)
         self.energy_budget = get_energy_budget(sum(self.stretches), self.avg_vel, self.P0, self.en_multiplier, self.M)
@@ -171,10 +171,10 @@ class VelocityController:
             vel_error = vel if vel > 0 else 0
             force_apply = - self.Kv * vel_error
 
-        print(f"BUDGET: {self.energy_budget}")
-        print(f"Energy used: {energy_used}")
-        print(f"VEL: {vel}")
-        print(f"REF_VEL: {ref_vel}")
+        # print(f"BUDGET: {self.energy_budget}")
+        # print(f"Energy used: {energy_used}")
+        # print(f"VEL: {vel}")
+        # print(f"REF_VEL: {ref_vel}")
 
         return np.array([u_v * np.cos(phi), u_ws])
 
