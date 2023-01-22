@@ -353,6 +353,25 @@ class Map:
             coords[i] = self.get_coordinates(temp[i][0], temp[i][1])
 
         return coords
+    def round_path(self, path: np.array) -> np.array:
+        points_to_remove = list()
+        for i,point in enumerate(path):
+            if i > 3 and i < len(path) -3:
+                upfront = path[i+1] - point
+                back = point - path[i-1]
+                if(abs(np.tensordot(upfront,back, axes=1)) <0.01):
+                    print(i)
+                    new_point = path[i-3] + path[i+3] - point
+                    vector =  (point-new_point)
+                    angle = np.arctan2(vector[1], vector[0])
+                    vector = np.linalg.norm(vector)*0.8* np.array([np.cos(angle),np.sin(angle)])
+                    desired_point = vector + new_point
+                    path[i][0] ,path[i][1] =  desired_point[0],desired_point[1]
+                    points_to_remove.append(i-1)
+                    points_to_remove.append(i+1)
+                #path = path.reshape((-1,2))
+        path = np.delete(path,points_to_remove,axis=0)
+        return path
 
     def orient_path(self, path: np.array) -> np.array:
         oriented_path = np.zeros(shape=(len(path), 4))
