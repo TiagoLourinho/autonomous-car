@@ -84,13 +84,6 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
     sleep(5)  # Load GUI
 
-    # Design the low pass filter
-    fs = 1000.0
-    cutoff = 490.0
-    nyquist = 0.5 * fs
-    normal_cutoff = cutoff / nyquist
-    b, a = signal.iirfilter(4, Wn=2.5, fs=30, btype="low", ftype="butter")
-
     global thread_shutdown
     global control_signals
     M = 1190
@@ -108,12 +101,12 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
             # Move to next point if close enough to the current one
             if (
-                np.linalg.norm(position - point[:2]) < 2.5
+                np.linalg.norm(position - point[:2]) < 4
                 and i <= len(oriented_path) - 3
             ):  # Standard road width
                 break
             elif (
-                np.linalg.norm(position - point[:2]) < 1.5
+                np.linalg.norm(position - point[:2]) < 1
                 and i > len(oriented_path) - 3
             ):
                 break

@@ -56,7 +56,7 @@ def get_max_velocities(path: list, vmax: float) -> list:
         if flag == 0 and flag1:
             flag1 = 0
             continue
-        beta = stretch_angle(path[i-2], path[i-1], path[i])
+        beta = max(stretch_angle(path[i-2], path[i-1], path[i]), stretch_angle(path[i-3], path[i-2], path[i-1]))
         if beta < np.pi/6:
             beta=0
 
@@ -106,7 +106,7 @@ class VelocityController:
         self.L = 2.46
         self.Kw = 2.5
         self.Kv = 0.6
-        self.Kpos = 4
+        self.Kpos = 0.5
         self.deadzone = 0.2
 
         self.M = 1190
