@@ -93,13 +93,13 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
     positions = []
     energy_used = 0
     energy_usage = []
+    j = -1
     already_filtered = 0
     for i, point in enumerate(oriented_path):
         while True:
             position = ekf.get_current_state()[:2]
             positions.append(position)
-
-
+            j += 1
             # Move to next point if close enough to the current one
             if (
                 np.linalg.norm(position - point[:2]) < 0.15 and i == len(oriented_path) -1

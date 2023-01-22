@@ -360,7 +360,6 @@ class Map:
                 upfront = path[i+1] - point
                 back = point - path[i-1]
                 if(abs(np.tensordot(upfront,back, axes=1)) <0.01):
-                    print(i)
                     new_point = path[i-3] + path[i+3] - point
                     vector =  (point-new_point)
                     angle = np.arctan2(vector[1], vector[0])
