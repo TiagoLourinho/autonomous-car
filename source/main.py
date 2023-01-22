@@ -85,7 +85,6 @@ def control_thread(oriented_path, ekf, controller):
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
     b, a = signal.iirfilter(4, Wn=2.5, fs=30, btype="low", ftype="butter")
-    controls = []
 
     global thread_shutdown
     global control_signals
@@ -96,7 +95,7 @@ def control_thread(oriented_path, ekf, controller):
     energy_usage = []
     j = -1
     already_filtered = 0
-    for i in range(len(oriented_path)):
+    for i,point in enumerate(oriented_path):
         while True:
             position = ekf.get_current_state()[:2]
             positions.append(position)
@@ -104,19 +103,19 @@ def control_thread(oriented_path, ekf, controller):
 
             # Move to next point if close enough to the current one
             if (
-                np.linalg.norm(position - oriented_path[i][:2]) < 2.5
+                np.linalg.norm(position - point[:2]) < 2.5
                 and i <= len(oriented_path) - 3
             ):  # Standard road width
                 break
             elif (
-                np.linalg.norm(position - oriented_path[i][:2]) < 1.5
+                np.linalg.norm(position - point[:2]) < 1.5
                 and i > len(oriented_path) - 3
             ):
                 break
 
             pose = ekf.get_current_state()[:6]
             current_control = controller.following_trajectory(
-                oriented_path[i], pose, energy_used
+                point, pose, energy_used
             )
 
             # Filtering
@@ -352,15 +351,19 @@ def main():
         thread_shutdown = True
         for t in threads.values():
             t.join()
+
+
+    time = np.arange(0, len(control_signals[0]),1)
+    time = time * 1/FREQUENCY
     plt.figure()
-    plt.plot(control_signals[0])
+    plt.plot(time,control_signals[0])
     plt.grid(True)
-    plt.xlabel(f"Time x {1/FREQUENCY:.2f}")
+    plt.xlabel(f"Time [s]")
     plt.ylabel("V [m/s]")
     plt.figure()
-    plt.plot(control_signals[1])
+    plt.plot(time,control_signals[1])
     plt.grid(True)
-    plt.xlabel(f"Time x {1/FREQUENCY:.2f}")
+    plt.xlabel(f"Time [s]")
     plt.ylabel(r"$\omega_{s}$ [rad/s]")
     plt.show()
 
