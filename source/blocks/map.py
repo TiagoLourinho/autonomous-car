@@ -369,6 +369,7 @@ class Map:
                     path[i][0] ,path[i][1] =  desired_point[0],desired_point[1]
                     points_to_remove.append(i-1)
                     points_to_remove.append(i+1)
+                    points_to_remove.append(i+2)
                 #path = path.reshape((-1,2))
         path = np.delete(path,points_to_remove,axis=0)
         return path

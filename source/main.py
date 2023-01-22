@@ -329,6 +329,7 @@ def choose_path():
 def main():
     global thread_shutdown
     path = choose_path()
+    path =  map.round_path(path)
     # Remove duplicate points
     _, idx = np.unique(path, axis=0, return_index=True)
     path = path[np.sort(idx)]
