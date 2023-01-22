@@ -120,6 +120,12 @@ class VelocityController:
         self.max_velocities = get_max_velocities(path, self.vmax)
         self.min_velocities = np.ones_like(self.max_velocities) * 1e-6
         self.ref_vels = self.optimize_velocities(self.path, self.stretches, self.energy_budget, self.max_velocities, self.min_velocities, self.P0, self.M)
+
+
+
+        self.error_integrator_ws = 0 
+        self.error_derivative_ws = 0
+        self.last_error = 0
         print(self.ref_vels)
 
 
@@ -143,7 +149,10 @@ class VelocityController:
             u_ws = 0
         else:
             ws_error = np.arctan2(pos_error_car_frame[1], pos_error_car_frame[0]) - phi
-            u_ws = self.Kw*ws_error
+            self.error_derivative_ws = ws_error-self.last_error
+            self.error_integrator_ws = ws_error+self.last_error
+            u_ws = self.Kw*ws_error + 0.2*self.error_integrator_ws+0.06*self.error_derivative_ws
+            self.last_error = ws_error
 
         #Retrieve current reference velocity
         curr_idx = np.where(self.path == point[0:2])[0][0]-1
