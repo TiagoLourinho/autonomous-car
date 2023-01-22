@@ -68,14 +68,14 @@ def sensor_thread(ekf):
         if time.time() - last_gps_poll >= gps_poll_freq:
             pos = sensors.get_GPS_position()
 
-            # pos = estimated_state[:2]
+            #pos = estimated_state[:2]
 
             ekf.update(pos, "gps")
             last_gps_poll = time.time()
         if time.time() - last_imu_poll >= imu_poll_freq:
             velocities = sensors.get_IMU_data()
 
-            # velocities = estimated_state[4:7]
+            #velocities = estimated_state[4:7]
 
             ekf.update(velocities, "imu")
             last_imu_poll = time.time()
@@ -93,23 +93,28 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
     positions = []
     energy_used = 0
     energy_usage = []
-    j = -1
     already_filtered = 0
     for i, point in enumerate(oriented_path):
         while True:
             position = ekf.get_current_state()[:2]
             positions.append(position)
-            j += 1
+
 
             # Move to next point if close enough to the current one
             if (
+                np.linalg.norm(position - point[:2]) < 0.15 and i == len(oriented_path) -1
+            ):
+                break
+            elif (
+                np.linalg.norm(position - point[:2]) < 2 and i > len(oriented_path) - 3 and  i <= len(oriented_path)-2
+            ):
+                break
+            elif (
                 np.linalg.norm(position - point[:2]) < 4 and i <= len(oriented_path) - 3
             ):  # Standard road width
                 break
-            elif (
-                np.linalg.norm(position - point[:2]) < 1 and i > len(oriented_path) - 3
-            ):
-                break
+            
+            
 
             pose = ekf.get_current_state()[:6]
             current_control = controller.following_trajectory(point, pose, energy_used)
@@ -149,7 +154,6 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
             if thread_shutdown:
                 return
-
     # Terminate program when the objetive was reached
     thread_shutdown = True
 
