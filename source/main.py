@@ -2,21 +2,26 @@ import time
 from threading import Lock, Thread
 from time import sleep
 import traceback
-
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 from scipy import signal
 
-from blocks import EKF, Controller, Map, Sensors
-from blocks.mpc import MPC_Controller
-from blocks.v_controller import VelocityController
-from constants import *
+from blocks import (
+    EKF,
+    Controller,
+    Map,
+    Sensors,
+    VelocityController,
+    MotorController,
+    MPC_Controller,
+)
 
-from blocks.mpc import MPC_Controller
+from constants import *
 
 
 FREQUENCY = 100  # Hz
+SIMULATION = True
 
 # Thread related
 lock = Lock()
@@ -39,7 +44,7 @@ def sensor_thread(ekf):
 
     global thread_shutdown
 
-    sensors = Sensors()
+    sensors = Sensors(simulated=SIMULATION)
 
     # Because in simulation there's always data available, let's
     # define a limit to how frequently we can poll
@@ -74,7 +79,7 @@ def sensor_thread(ekf):
             last_imu_poll = time.time()
 
 
-def control_thread(oriented_path, ekf, controller):
+def control_thread(oriented_path, ekf, controller, motor_controller):
     """Function to run in a thread, calculating the control signals"""
 
     sleep(5)  # Load GUI
@@ -95,7 +100,7 @@ def control_thread(oriented_path, ekf, controller):
     energy_usage = []
     j = -1
     already_filtered = 0
-    for i,point in enumerate(oriented_path):
+    for i, point in enumerate(oriented_path):
         while True:
             position = ekf.get_current_state()[:2]
             positions.append(position)
@@ -114,11 +119,18 @@ def control_thread(oriented_path, ekf, controller):
                 break
 
             pose = ekf.get_current_state()[:6]
-            current_control = controller.following_trajectory(
-                point, pose, energy_used
-            )
+            current_control = controller.following_trajectory(point, pose, energy_used)
 
-            # Filtering
+            # Filtering (Max steering angle)
+            phi = pose[3]
+            omega = current_control[1]
+
+            if (omega > 0 and phi == ekf.get_max_steering_angle()) or (
+                omega < 0 and phi == -ekf.get_max_steering_angle()
+            ):
+                current_control[1] = 0
+
+            # Filtering (low pass)
             if already_filtered == 0:
                 b = signal.firwin(80, 0.004)
                 z = signal.lfilter_zi(b, 1) * current_control[1]
@@ -130,6 +142,8 @@ def control_thread(oriented_path, ekf, controller):
             control_signals[0].append(current_control.tolist()[0])
             control_signals[1].append(current_control.tolist()[1])
 
+            # Send commands
+            motor_controller.send_control(phi, current_control)
             ekf.predict(current_control)
 
             sleep(1 / FREQUENCY)
@@ -231,11 +245,14 @@ def start_gui(path, ekf):
     )
     state["artists"]["estimated_car_theta"] = None
     (state["artists"]["real_car_position"],) = ax.plot(
-        *ekf.get_predicted_state()[:2], "go", markersize=5, label="Real Pose"
+        *ekf.get_predicted_state()[:2],
+        "go",
+        markersize=5,
+        label="Predicted Pose (car model)",
     )
     state["artists"]["real_car_theta"] = None
     ax.legend()
-    ax.set_title("Simulating...")
+    ax.set_title("Simulating..." if SIMULATION else "Status")
 
     anim = animation.FuncAnimation(
         fig,
@@ -326,6 +343,7 @@ def main():
     oriented_path = map.orient_path(path)
 
     cont = VelocityController(path)
+    motor_controller = MotorController(FREQUENCY, SIMULATION)
 
     # Set initial theta
     ekf = EKF(
@@ -336,7 +354,7 @@ def main():
     threads = {
         "sensor_thread": Thread(target=sensor_thread, args=(ekf,)),
         "controller_thread": Thread(
-            target=control_thread, args=(oriented_path, ekf, cont)
+            target=control_thread, args=(oriented_path, ekf, cont, motor_controller)
         ),
     }
 
@@ -352,16 +370,15 @@ def main():
         for t in threads.values():
             t.join()
 
-
-    time = np.arange(0, len(control_signals[0]),1)
-    time = time * 1/FREQUENCY
+    time = np.arange(0, len(control_signals[0]), 1)
+    time = time * 1 / FREQUENCY
     plt.figure()
-    plt.plot(time,control_signals[0])
+    plt.plot(time, control_signals[0])
     plt.grid(True)
     plt.xlabel(f"Time [s]")
     plt.ylabel("V [m/s]")
     plt.figure()
-    plt.plot(time,control_signals[1])
+    plt.plot(time, control_signals[1])
     plt.grid(True)
     plt.xlabel(f"Time [s]")
     plt.ylabel(r"$\omega_{s}$ [rad/s]")
