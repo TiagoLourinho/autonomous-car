@@ -15,7 +15,7 @@ class EKF:
         """
 
         self.car_L = 2.46
-        self.max_wheel_angle = 25
+        self.max_wheel_angle = np.deg2rad(25)
 
         self.time_step = 1 / predict_frequency
 
@@ -84,16 +84,12 @@ class EKF:
             # Account for maximum steering angle
             self.state[3] = (
                 min(
-                    np.deg2rad(
-                        self.max_wheel_angle,
-                    ),
+                    self.max_wheel_angle,
                     self.state[3],
                 )
                 if self.state[3] > 0
                 else max(
-                    np.deg2rad(
-                        -self.max_wheel_angle,
-                    ),
+                    -self.max_wheel_angle,
                     self.state[3],
                 )
             )
@@ -101,16 +97,12 @@ class EKF:
             # Account for maximum steering angle
             self.predicted[3] = (
                 min(
-                    np.deg2rad(
-                        self.max_wheel_angle,
-                    ),
+                    self.max_wheel_angle,
                     self.predicted[3],
                 )
                 if self.predicted[3] > 0
                 else max(
-                    np.deg2rad(
-                        -self.max_wheel_angle,
-                    ),
+                    -self.max_wheel_angle,
                     self.predicted[3],
                 )
             )
@@ -166,16 +158,12 @@ class EKF:
             # Account for maximum steering angle
             self.state[3] = (
                 min(
-                    np.deg2rad(
-                        self.max_wheel_angle,
-                    ),
+                    self.max_wheel_angle,
                     self.state[3],
                 )
                 if self.state[3] > 0
                 else max(
-                    np.deg2rad(
-                        -self.max_wheel_angle,
-                    ),
+                    -self.max_wheel_angle,
                     self.state[3],
                 )
             )
@@ -198,3 +186,10 @@ class EKF:
         with self.lock:
 
             return self.cov
+
+    def get_max_steering_angle(self) -> float:
+        """Returns the max steering angle"""
+
+        with self.lock:
+
+            return self.max_wheel_angle
