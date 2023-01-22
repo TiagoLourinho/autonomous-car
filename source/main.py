@@ -6,7 +6,7 @@ import traceback
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-
+from scipy import signal
 
 from blocks import EKF, Controller, Map, Sensors
 from blocks.mpc import MPC_Controller
@@ -79,6 +79,14 @@ def control_thread(oriented_path, ekf, controller):
 
     sleep(5)  # Load GUI
 
+    # Design the low pass filter
+    fs = 1000.0
+    cutoff = 490.0
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = signal.iirfilter(4, Wn=2.5, fs=30, btype="low", ftype="butter")
+    controls = []
+
     global thread_shutdown
     global control_signals
     M = 1190
@@ -87,6 +95,7 @@ def control_thread(oriented_path, ekf, controller):
     energy_used = 0
     energy_usage = []
     j = -1
+    already_filtered = 0
     for i in range(len(oriented_path)):
         while True:
             position = ekf.get_current_state()[:2]
@@ -109,6 +118,16 @@ def control_thread(oriented_path, ekf, controller):
             current_control = controller.following_trajectory(
                 oriented_path[i], pose, energy_used
             )
+
+            # Filtering
+            if already_filtered == 0:
+                b = signal.firwin(80, 0.004)
+                z = signal.lfilter_zi(b, 1) * current_control[1]
+                current_control[1], z = signal.lfilter(b, 1, [current_control[1]], zi=z)
+                already_filtered += 1
+            else:
+                current_control[1], z = signal.lfilter(b, 1, [current_control[1]], zi=z)
+
             control_signals[0].append(current_control.tolist()[0])
             control_signals[1].append(current_control.tolist()[1])
 
