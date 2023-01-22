@@ -61,7 +61,9 @@ def sensor_thread(ekf):
         estimated_state = ekf.get_current_state()
         real_state = ekf.get_predicted_state()
 
-        sensors.update_world_view(real_state[2], real_state[:2], real_state[4:7], None)
+        sensors.update_world_view(
+            real_state[2].copy(), real_state[:2].copy(), real_state[4:7].copy(), None
+        )
 
         if time.time() - last_gps_poll >= gps_poll_freq:
             pos = sensors.get_GPS_position()
@@ -101,13 +103,11 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
             # Move to next point if close enough to the current one
             if (
-                np.linalg.norm(position - point[:2]) < 4
-                and i <= len(oriented_path) - 3
+                np.linalg.norm(position - point[:2]) < 4 and i <= len(oriented_path) - 3
             ):  # Standard road width
                 break
             elif (
-                np.linalg.norm(position - point[:2]) < 1
-                and i > len(oriented_path) - 3
+                np.linalg.norm(position - point[:2]) < 1 and i > len(oriented_path) - 3
             ):
                 break
 
