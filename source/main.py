@@ -102,7 +102,7 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
             j += 1
             # Move to next point if close enough to the current one
             if (
-                np.linalg.norm(position - point[:2]) < 4 and i <= len(oriented_path) - 3
+                np.linalg.norm(position - point[:2]) < 5 and i <= len(oriented_path) - 3
             ):  # Standard road width
                 break
             elif (
