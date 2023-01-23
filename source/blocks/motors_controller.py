@@ -25,7 +25,7 @@ class MotorController:
             self.path = ".\EposCmd64.dll"
 
             # Load library
-            self.cdll.LoadLibrary(self.path)
+            cdll.LoadLibrary(self.path)
             self.epos = CDLL(self.path)
 
             # Defining return variables from Library Functions
@@ -45,28 +45,28 @@ class MotorController:
             # Initiating connection and setting motion profile
             #
             # keyHandle = epos.VCS_OpenDevice(b'EPOS2', b'MAXON SERIAL V2', b'USB', b'USB0', byref(pErrorCode)) # specify EPOS version and interface
-            keyHandle = self.epos.VCS_OpenDevice(
-                b"EPOS", b"MAXON_RS232", b"RS232", b"COM5", byref(self.pErrorCode)
+            self.keyHandle = self.epos.VCS_OpenDevice(
+                b"EPOS", b"MAXON_RS232", b"RS232", b"COM9", byref(self.pErrorCode)
             )  # specify EPOS version and interface
             print("device open\n")
 
             self.epos.VCS_SetProtocolStackSettings(
-                keyHandle, self.baudrate, self.timeout, byref(self.pErrorCode)
+                self.keyHandle, self.baudrate, self.timeout, byref(self.pErrorCode)
             )  # set baudrate
             print("protocol set\n")
 
             self.epos.VCS_ClearFault(
-                keyHandle, self.nodeID, byref(self.pErrorCode)
+               self.keyHandle, self.nodeID, byref(self.pErrorCode)
             )  # clear all faults
             print("faults cleared\n")
 
             self.epos.VCS_ActivateProfilePositionMode(
-                keyHandle, self.nodeID, byref(self.pErrorCode)
+                self.keyHandle, self.nodeID, byref(self.pErrorCode)
             )  # activate profile position mode
             print("profile position activated\n")
 
             self.epos.VCS_SetEnableState(
-                keyHandle, self.nodeID, byref(self.pErrorCode)
+                self.keyHandle, self.nodeID, byref(self.pErrorCode)
             )  # enable device
             print("enable state\n")
 
@@ -90,11 +90,14 @@ class MotorController:
             # 820 qc approx 2 tours
             # 410 qc it does not move
             # 2050 qc approx 7 tours
-            self.MoveToPositionSpeed(qc, rpm)  # move to position  qc  at rpm
+            #print(f"qc: {qc}\t rpm: {rpm}")
+            #print("going in")
+            self.MoveToPositionSpeed(round(qc), round(rpm))  # move to position  qc  at rpm
+            #print("going out")
 
-            print("Motor position: %s" % (self.GetPositionIs()))
+            #print("Motor position: %s" % (self.GetPositionIs()))
             # time.sleep(5) # FIXME: Should we sleep?
-            print("move 1 completed\n")
+            #print("move 1 completed\n")
 
     # Query motor position
     def GetPositionIs(self):
@@ -140,15 +143,13 @@ class MotorController:
                 self.epos.VCS_HaltPositionMovement(
                     self.keyHandle, self.nodeID, byref(self.pErrorCode)
                 )  # halt motor
-                print("motion halted\n")
+                #print("motion halted\n")
 
             true_position = self.GetPositionIs()
             delta_pos = true_position - previous_position
             previous_position = true_position
 
-            print(
-                "position {0}   {1}   {2}\n".format(true_position, delta_t, delta_pos)
-            )
+            #print("position {0}   {1}   {2}\n".format(true_position, delta_t, delta_pos))
             if abs(true_position - target_position) < 200:
                 break
             elif abs(delta_pos) < 10:
@@ -157,8 +158,8 @@ class MotorController:
                     flag = 1
                 else:
                     delta_t = time.time() - initial_time
-                    if delta_t > 10.0:
-                        print("bailing out {0}\n".format(delta_t))
+                    if delta_t > 1/200:
+                        #print("bailing out {0}\n".format(delta_t))
                         break
             elif abs(delta_pos) > 10:
                 initial_time = time.time()

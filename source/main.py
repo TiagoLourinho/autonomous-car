@@ -21,7 +21,7 @@ from constants import *
 
 
 FREQUENCY = 100  # Hz
-SIMULATION = True
+SIMULATION = False
 
 # Thread related
 lock = Lock()
@@ -44,7 +44,7 @@ def sensor_thread(ekf):
 
     global thread_shutdown
 
-    sensors = Sensors(simulated=SIMULATION)
+    sensors = Sensors(simulated=True)
 
     # Because in simulation there's always data available, let's
     # define a limit to how frequently we can poll
