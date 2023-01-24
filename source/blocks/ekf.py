@@ -193,3 +193,10 @@ class EKF:
         with self.lock:
 
             return self.max_wheel_angle
+
+    def set_state(self, index, value) -> None:
+        """Changes the state"""
+
+        with self.lock:
+
+            self.state[index] = value

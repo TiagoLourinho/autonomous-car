@@ -56,7 +56,7 @@ class MotorController:
             print("protocol set\n")
 
             self.epos.VCS_ClearFault(
-               self.keyHandle, self.nodeID, byref(self.pErrorCode)
+                self.keyHandle, self.nodeID, byref(self.pErrorCode)
             )  # clear all faults
             print("faults cleared\n")
 
@@ -90,14 +90,20 @@ class MotorController:
             # 820 qc approx 2 tours
             # 410 qc it does not move
             # 2050 qc approx 7 tours
-            #print(f"qc: {qc}\t rpm: {rpm}")
-            #print("going in")
-            self.MoveToPositionSpeed(round(qc), round(rpm))  # move to position  qc  at rpm
-            #print("going out")
+            # print(f"qc: {qc}\t rpm: {rpm}")
+            # print("going in")
+            qc = self.MoveToPositionSpeed(
+                round(qc), round(rpm)
+            )  # move to position  qc  at rpm
+            # print("going out")
 
-            #print("Motor position: %s" % (self.GetPositionIs()))
+            # print("Motor position: %s" % (self.GetPositionIs()))
             # time.sleep(5) # FIXME: Should we sleep?
-            #print("move 1 completed\n")
+            # print("move 1 completed\n")
+
+            return np.deg2rad(self.qc_to_deg(qc))
+        else:
+            return None
 
     # Query motor position
     def GetPositionIs(self):
@@ -143,13 +149,13 @@ class MotorController:
                 self.epos.VCS_HaltPositionMovement(
                     self.keyHandle, self.nodeID, byref(self.pErrorCode)
                 )  # halt motor
-                #print("motion halted\n")
+                # print("motion halted\n")
 
             true_position = self.GetPositionIs()
             delta_pos = true_position - previous_position
             previous_position = true_position
 
-            #print("position {0}   {1}   {2}\n".format(true_position, delta_t, delta_pos))
+            # print("position {0}   {1}   {2}\n".format(true_position, delta_t, delta_pos))
             if abs(true_position - target_position) < 200:
                 break
             elif abs(delta_pos) < 10:
@@ -158,11 +164,13 @@ class MotorController:
                     flag = 1
                 else:
                     delta_t = time.time() - initial_time
-                    if delta_t > 1/200:
-                        #print("bailing out {0}\n".format(delta_t))
+                    if delta_t > (1 / self.frequency) / 2:
+                        # print("bailing out {0}\n".format(delta_t))
                         break
             elif abs(delta_pos) > 10:
                 initial_time = time.time()
+
+        return self.GetPositionIs()
 
     def housekeeping(self):
 
