@@ -21,7 +21,7 @@ from constants import *
 
 
 FREQUENCY = 100  # Hz
-SIMULATION = False
+SIMULATION = True
 
 # Thread related
 lock = Lock()

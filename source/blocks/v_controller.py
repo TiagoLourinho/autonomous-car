@@ -50,70 +50,50 @@ def get_max_velocities(path: list, vmax: float) -> list:
     is linear or a curve. If its a curve, the tighter it is the lower the maximum allowed velocity is
     """
     flag = 0
-    flag1 = 0
+    len_deceleration = 4
     velocities = []
-    for i in range(len(path)):
-        if i <= 1 or flag:
+    betas = []
+    i=0
+    while i < len(path) - 1:
+        i += 1
+        if i <= 1 :
+            continue
+        
+        if flag:
             flag = 0
+            for k in range(len_deceleration):
+                velocities.append(velocities[-1])
+            i += len_deceleration - 1
             continue
-        if flag == 0 and flag1:
-            flag1 = 0
-            continue
-        beta = max(
-            stretch_angle(path[i - 2], path[i - 1], path[i]),
-            stretch_angle(path[i - 3], path[i - 2], path[i - 1]),
-            stretch_angle(path[i - 4], path[i - 3], path[i - 2]),
-        )
+
+        beta = stretch_angle(path[i - 2], path[i - 1], path[i])
         if beta < np.pi / 6:
             beta = 0
+        betas.append(beta)
 
-        if (
-            beta != 0
-            and beta < np.pi / 4
-            and i != len(path) - 1
-            and len(velocities) > 0
-        ):
-            velocities[-1] = vmax * (beta / np.pi) * 0.8
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            flag = 1
-            flag1 = 1
+        if beta != 0:
+            multiplier = 1/beta * np.pi/6 * 0.8
 
-        elif (
-            beta != 0
-            and beta < np.pi / 2
-            and i != len(path) - 1
-            and len(velocities) > 0
-        ):
-            velocities[-1] = vmax * (beta / np.pi) * 0.8
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
+        if beta != 0 and len(velocities) == 0:
+            velocities.append(vmax * multiplier)
+        elif beta != 0 and beta < np.pi / 4 and i != len(path) - 1:
+            velocities.append(vmax * multiplier)
             flag = 1
-            flag1 = 1
 
-        elif beta != 0 and i != len(path) - 1 and len(velocities) > 0:
-            velocities[-1] = vmax * (beta / np.pi) * 0.7
-            velocities.append(vmax * (beta / np.pi) * 0.7)
-            velocities.append(vmax * (beta / np.pi) * 0.7)
-            velocities.append(vmax * (beta / np.pi) * 0.7)
+        elif beta != 0 and beta < 2*np.pi / 3 and i != len(path) - 1:
+            velocities.append(vmax * multiplier * 0.8)
             flag = 1
-            flag1 = 1
+
+        elif beta != 0 and i != len(path) - 1 : #security
+            velocities.append(vmax * multiplier)
+            flag = 1
         else:
             velocities.append(vmax)
     # extra one
     velocities.append(vmax)
+    print(f"BETAS: {betas}")
 
     return velocities
-
-
-"""
-def merge_velocities(max_velocities: list) -> list:
-     _, idx = np.unique(max_velocities, axis=0, return_index=True)
-     idxes = np.sort(idx)
-     return idxes
-"""
 
 
 class VelocityController:
@@ -133,7 +113,7 @@ class VelocityController:
         self.P0 = 500
         self.en_multiplier = 1.3
         self.avg_vel = 25
-        self.vmax = 3
+        self.vmax = 6
 
         self.stretches = get_path_stretches(path)
         self.energy_budget = get_energy_budget(
@@ -174,7 +154,7 @@ class VelocityController:
         )
         pos_error_car_frame = car_frame_rotation @ pos_error
 
-        # If car very close to target point don't change steering
+        # If car very close to target point don't change steering (lasy point)
         if np.linalg.norm(pos_error_car_frame) < 1e-6:
             u_ws = 0
         else:
