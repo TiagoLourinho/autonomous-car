@@ -58,6 +58,29 @@ class EKF:
                 ]
             )
 
+            B_predicted = np.array(
+                [
+                    [
+                        self.time_step
+                        * np.cos(self.predicted[2])
+                        * np.cos(self.predicted[3]),
+                        0,
+                    ],
+                    [
+                        self.time_step
+                        * np.sin(self.predicted[2])
+                        * np.cos(self.predicted[3]),
+                        0,
+                    ],
+                    [self.time_step * np.sin(self.predicted[3]) / self.car_L, 0],
+                    [0, self.time_step],
+                    [np.cos(self.predicted[2]) * np.cos(self.predicted[3]), 0],
+                    [np.sin(self.predicted[2]) * np.cos(self.predicted[3]), 0],
+                    [np.sin(self.predicted[3]) / self.car_L, 0],
+                    [0, 1],
+                ]
+            )
+
             # fmt:off
             G = np.array(
                 [
@@ -76,9 +99,10 @@ class EKF:
             R = np.identity(8) / 10
 
             g = lambda controls, state: A @ state + B @ controls
+            g_predicted = lambda controls, state: A @ state + B_predicted @ controls
 
             self.state = g(control, self.state)
-            self.predicted = g(control, self.predicted)
+            self.predicted = g_predicted(control, self.predicted)
             self.cov = G @ self.cov @ G.T + R
 
             # Account for maximum steering angle
