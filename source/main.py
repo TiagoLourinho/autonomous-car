@@ -19,10 +19,6 @@ from blocks import (
 
 from constants import *
 
-
-FREQUENCY = 100  # Hz
-SIMULATION = True
-
 # Thread related
 lock = Lock()
 thread_shutdown = False
@@ -35,6 +31,15 @@ map = Map()
 
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 control_signals = [[], []]
+
+#PUT THIS ENERGY FUNCTION IN AN APPROPRIATE PLACE
+def update_energy_usage(curr_idx: int, positions: list, pose: np.array, true_position: np.array, freq: float, M: float, P0: float, multiplier: float):
+    if curr_idx >= 1:
+        d = np.linalg.norm(true_position - positions[curr_idx - 1])
+        v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
+        return multiplier * M * d * v + P0 * (1 / freq)
+    else:
+        return 0
 
 
 def sensor_thread(ekf):
@@ -95,19 +100,22 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
     global thread_shutdown
     global control_signals
-    M = 1190
-    P0 = 500
     positions = []
     energy_used = 0
     energy_usage = []
-    j = -1
+    j=-1
     already_filtered = 0
+
     try:
         for i, point in enumerate(oriented_path):
             while True:
                 position = ekf.get_current_state()[:2]
-                positions.append(position)
-                j += 1
+
+                #Retrieve true position for energy calculation purpose only
+                true_position = ekf.get_predicted_state()[:2]
+                positions.append(true_position)
+                j+=1
+
                 # Move to next point if close enough to the current one
                 if (
                     np.linalg.norm(position - point[:2]) < 5
@@ -125,12 +133,13 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
                     point, pose, energy_used
                 )
 
+                #PUT FILTERING INTO FUNCTION in appropriate place
                 # Filtering (Max steering angle)
                 phi = pose[3]
                 omega = current_control[1]
 
-                if (omega > 0 and phi == ekf.get_max_steering_angle()) or (
-                    omega < 0 and phi == -ekf.get_max_steering_angle()
+                if (omega > 0 and phi >= ekf.get_max_steering_angle()) or (
+                    omega < 0 and phi <= -ekf.get_max_steering_angle()
                 ):
                     current_control[1] = 0
 
@@ -160,9 +169,9 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
                 sleep(1 / FREQUENCY)
 
                 # Energy usage
-                d = np.linalg.norm(position - positions[j - 1])
-                v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
-                energy_used += M * d * v + P0 * (1 / FREQUENCY)
+                current_energy = update_energy_usage(j, positions, pose, true_position, FREQUENCY, M, P0, multiplier)
+                print(current_energy)
+                energy_used += current_energy
                 energy_usage.append(energy_used)
 
                 if thread_shutdown:

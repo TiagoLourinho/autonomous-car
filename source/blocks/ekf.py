@@ -64,13 +64,13 @@ class EKF:
                         self.time_step
                         * np.cos(self.predicted[2])
                         * np.cos(self.predicted[3]),
-                        0,
+                        0
                     ],
                     [
                         self.time_step
                         * np.sin(self.predicted[2])
                         * np.cos(self.predicted[3]),
-                        0,
+                        0
                     ],
                     [self.time_step * np.sin(self.predicted[3]) / self.car_L, 0],
                     [0, self.time_step],
