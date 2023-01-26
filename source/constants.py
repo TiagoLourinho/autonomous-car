@@ -3,14 +3,26 @@ import matplotlib.pyplot as plt
 
 from utils import dms2deg
 
+#Simulation constants
+FREQUENCY = 100  # Hz
+SIMULATION = True
 
+#Car constants
+M = 1190 # kg
+P0 = 500 # W
+L = 2.46 # m
+
+#Energy constants
+multiplier = 1.2
+avg_velocity = 10  #For budget calculation
+max_velocity = 7 #For energy-based optimization
+
+#Map constants
 GMAPS_KEY = "AIzaSyAE3mAAR3DtUpmMY17pS18a7LeSzIbZXFI"  # Google Maps API key
-
 
 ORIGIN = np.array(
     [38.73761835946306, -9.138958625673242]
 )  # Latitude and Longitude of entrance of north tower
-
 
 TOP_LEFT_CORNER = np.array(
     [dms2deg(38, 44, 19.03, "N"), dms2deg(9, 8, 29.68, "W")]

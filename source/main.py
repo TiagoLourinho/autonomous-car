@@ -19,10 +19,6 @@ from blocks import (
 
 from constants import *
 
-
-FREQUENCY = 100  # Hz
-SIMULATION = True
-
 # Thread related
 lock = Lock()
 thread_shutdown = False
@@ -36,6 +32,15 @@ map = Map()
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 control_signals = [[], []] #Keep the control signals to plot in the end
 
+#PUT THIS ENERGY FUNCTION IN AN APPROPRIATE PLACE
+def update_energy_usage(curr_idx: int, positions: list, pose: np.array, true_position: np.array, freq: float, M: float, P0: float, multiplier: float):
+    if curr_idx >= 1:
+        d = np.linalg.norm(true_position - positions[curr_idx - 1])
+        v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
+        return multiplier * M * d * v + P0 * (1 / freq)
+    else:
+        return 0
+
 
 def sensor_thread(ekf):
     """Function to run in a thread, checking for new sensor data and updating EKF"""
@@ -44,7 +49,7 @@ def sensor_thread(ekf):
 
     global thread_shutdown
 
-    sensors = Sensors(simulated=SIMULATION)
+    sensors = Sensors(simulated=True)
 
     # Because in simulation there's always data available, let's
     # define a limit to how frequently we can poll
@@ -52,33 +57,40 @@ def sensor_thread(ekf):
     imu_poll_freq = 0.01
     last_gps_poll = 0
     last_imu_poll = 0
+    try:
+        while not thread_shutdown:
 
-    while not thread_shutdown:
+            sensors.acquire()
 
-        sensors.acquire()
+            # The estimated state is no longer needed here, left it behind just to be clear about the changes made
+            estimated_state = ekf.get_current_state()
+            real_state = ekf.get_predicted_state()
 
-        # The estimated state is no longer needed here, left it behind just to be clear about the changes made
-        estimated_state = ekf.get_current_state()
-        real_state = ekf.get_predicted_state()
+            sensors.update_world_view(
+                real_state[2].copy(),
+                real_state[:2].copy(),
+                real_state[4:7].copy(),
+                None,
+            )
 
-        sensors.update_world_view(
-            real_state[2].copy(), real_state[:2].copy(), real_state[4:7].copy(), None
-        )
+            if time.time() - last_gps_poll >= gps_poll_freq:
+                pos = sensors.get_GPS_position()
 
-        if time.time() - last_gps_poll >= gps_poll_freq:
-            pos = sensors.get_GPS_position()
+                # pos = estimated_state[:2]
 
-            #pos = estimated_state[:2]
+                ekf.update(pos, "gps")
+                last_gps_poll = time.time()
+            if time.time() - last_imu_poll >= imu_poll_freq:
+                velocities = sensors.get_IMU_data()
 
-            ekf.update(pos, "gps")
-            last_gps_poll = time.time()
-        if time.time() - last_imu_poll >= imu_poll_freq:
-            velocities = sensors.get_IMU_data()
+                # velocities = estimated_state[4:7]
 
-            #velocities = estimated_state[4:7]
-
-            ekf.update(velocities, "imu")
-            last_imu_poll = time.time()
+                ekf.update(velocities, "imu")
+                last_imu_poll = time.time()
+    except Exception:
+        print(traceback.format_exc())
+    finally:
+        thread_shutdown = True
 
 
 def control_thread(oriented_path, ekf, controller, motor_controller):
@@ -92,64 +104,85 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
     P0 = 500
     positions = []
     energy_used = 0
-    energy_usage = [] #Keep track of Energy spent
+    energy_usage = []
+    j = -1
     already_filtered = 0
-    for i, point in enumerate(oriented_path):
-        while True:
-            position = ekf.get_current_state()[:2]
-            positions.append(position)
-            # Move to next point if close enough to the current one
-            if (
-                np.linalg.norm(position - point[:2]) < 5 and i <= len(oriented_path) - 3
-            ):  # Standard road width
-                break
-            elif (
-                np.linalg.norm(position - point[:2]) < 1 and i > len(oriented_path) - 3
-            ):
-                break
-            
-            
 
-            pose = ekf.get_current_state()[:6]
-            current_control = controller.following_trajectory(point, pose, energy_used)
+    try:
+        for i, point in enumerate(oriented_path):
+            while True:
+                position = ekf.get_current_state()[:2]
 
-            # Filtering (Max steering angle)
-            phi = pose[3]
-            omega = current_control[1]
+                #Retrieve true position for energy calculation purpose only
+                true_position = ekf.get_predicted_state()[:2]
+                positions.append(true_position)
+                j+=1
 
-            if (omega > 0 and phi == ekf.get_max_steering_angle()) or (
-                omega < 0 and phi == -ekf.get_max_steering_angle()
-            ):
-                current_control[1] = 0
+                # Move to next point if close enough to the current one
+                if (
+                    np.linalg.norm(position - point[:2]) < 5
+                    and i <= len(oriented_path) - 3
+                ):  # Standard road width
+                    break
+                elif (
+                    np.linalg.norm(position - point[:2]) < 1
+                    and i > len(oriented_path) - 3
+                ):
+                    break
 
-            # Filtering (low pass)
-            if already_filtered == 0:
-                b = signal.firwin(80, 0.004)
-                z = signal.lfilter_zi(b, 1) * current_control[1]
-                current_control[1], z = signal.lfilter(b, 1, [current_control[1]], zi=z)
-                already_filtered += 1
-            else:
-                current_control[1], z = signal.lfilter(b, 1, [current_control[1]], zi=z)
+                pose = ekf.get_current_state()[:6]
+                current_control = controller.following_trajectory(
+                    point, pose, energy_used
+                )
 
-            control_signals[0].append(current_control.tolist()[0])
-            control_signals[1].append(current_control.tolist()[1])
+                #PUT FILTERING INTO FUNCTION in appropriate place
+                # Filtering (Max steering angle)
+                phi = pose[3]
+                omega = current_control[1]
 
-            # Send commands
-            motor_controller.send_control(phi, current_control)
-            ekf.predict(current_control)
+                if (omega > 0 and phi >= ekf.get_max_steering_angle()) or (
+                    omega < 0 and phi <= -ekf.get_max_steering_angle()
+                ):
+                    current_control[1] = 0
 
-            sleep(1 / FREQUENCY)
+                # Filtering (low pass)
+                if already_filtered == 0:
+                    b = signal.firwin(80, 0.004)
+                    z = signal.lfilter_zi(b, 1) * current_control[1]
+                    current_control[1], z = signal.lfilter(
+                        b, 1, [current_control[1]], zi=z
+                    )
+                    already_filtered += 1
+                else:
+                    current_control[1], z = signal.lfilter(
+                        b, 1, [current_control[1]], zi=z
+                    )
 
-            # Energy usage
-            d = np.linalg.norm(position - positions[-2])
-            v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
-            energy_used += M * d * v + P0 * (1 / FREQUENCY)
-            energy_usage.append(energy_used)
+                control_signals[0].append(current_control.tolist()[0])
+                control_signals[1].append(current_control.tolist()[1])
 
-            if thread_shutdown:
-                return
-    # Terminate program when the objetive was reached
-    thread_shutdown = True
+                # Send commands
+                phi = motor_controller.send_control(phi, current_control)
+                ekf.predict(current_control)
+
+                if phi is not None:  # Controller gives the true phi
+                    ekf.set_state(3, phi)
+
+                sleep(1 / FREQUENCY)
+
+                # Energy usage
+                current_energy = update_energy_usage(j, positions, pose, true_position, FREQUENCY, M, P0, multiplier)
+                print(current_energy)
+                energy_used += current_energy
+                energy_usage.append(energy_used)
+
+                if thread_shutdown:
+                    return
+
+    except Exception:
+        print(traceback.format_exc())
+    finally:
+        thread_shutdown = True
 
 
 def update_animation(n, state, ekf):
@@ -327,7 +360,7 @@ def choose_path():
 def main():
     global thread_shutdown
     path = choose_path()
-    path =  map.round_path(path)
+    path = map.round_path(path)
     # Remove duplicate points
     _, idx = np.unique(path, axis=0, return_index=True)
     path = path[np.sort(idx)]
@@ -361,6 +394,7 @@ def main():
         thread_shutdown = True
         for t in threads.values():
             t.join()
+        motor_controller.housekeeping()
 
     #Plot the control Signals (V,ws)
     time = np.arange(0, len(control_signals[0]), 1)

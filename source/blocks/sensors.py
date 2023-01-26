@@ -10,7 +10,7 @@ class Sensors:
 
     GPS_MEASUREMENT_STD = np.array((0.7, 0.7))
     ROTATION_MEASUREMENT_STD = np.array((0.01745, 0.01745, 0.01745))
-    ACCELERATION_MEASUREMENT_STD = np.array((0, 0, 0))
+    ACCELERATION_MEASUREMENT_STD = np.array((0.01, 0.01, 0.01))
     IMU_MEASUREMENT_STD = np.array((0.1, 0.1, 0.01745))
 
     def __init__(self, port: Optional[str] = None, simulated: bool = True):

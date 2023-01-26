@@ -2,6 +2,11 @@ import numpy as np
 import scipy.optimize
 import scipy.signal
 
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'source'))
+
+from constants import *
+
 
 def get_energy_budget(d: float, v_avg: float, P0: float, m: float, M: float) -> float:
     """
@@ -50,70 +55,54 @@ def get_max_velocities(path: list, vmax: float) -> list:
     is linear or a curve. If its a curve, the tighter it is the lower the maximum allowed velocity is
     """
     flag = 0
-    flag1 = 0
+    len_deceleration = 4
+    deccel_constant = 1.4
     velocities = []
-    for i in range(len(path)):
-        if i <= 1 or flag:
+    betas = []
+    i=0
+    while i < len(path) - 1:
+        i += 1
+        if i <= 1 :
+            continue
+        
+        if flag:
             flag = 0
+            for k in range(len_deceleration):
+                if k == 0:
+                    velocities.append(velocities[-1] / deccel_constant)
+                else:
+                    velocities.append(velocities[-1])
+
+            i += len_deceleration - 1
             continue
-        if flag == 0 and flag1:
-            flag1 = 0
-            continue
-        beta = max(
-            stretch_angle(path[i - 2], path[i - 1], path[i]),
-            stretch_angle(path[i - 3], path[i - 2], path[i - 1]),
-            stretch_angle(path[i - 4], path[i - 3], path[i - 2]),
-        )
+
+        beta = stretch_angle(path[i - 2], path[i - 1], path[i])
         if beta < np.pi / 6:
             beta = 0
+        betas.append(beta)
 
-        if (
-            beta != 0
-            and beta < np.pi / 4
-            and i != len(path) - 1
-            and len(velocities) > 0
-        ):
-            velocities[-1] = vmax * (beta / np.pi) * 0.8
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            flag = 1
-            flag1 = 1
+        if beta != 0:
+            multiplier = 1/beta * np.pi/6 * 0.8
 
-        elif (
-            beta != 0
-            and beta < np.pi / 2
-            and i != len(path) - 1
-            and len(velocities) > 0
-        ):
-            velocities[-1] = vmax * (beta / np.pi) * 0.8
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
-            velocities.append(vmax * (beta / np.pi) * 0.8)
+        if beta != 0 and len(velocities) == 0:
+            velocities.append(vmax * multiplier)
+        elif beta != 0 and beta < np.pi / 4 and i != len(path) - 1:
+            velocities.append(vmax * multiplier * deccel_constant)
             flag = 1
-            flag1 = 1
 
-        elif beta != 0 and i != len(path) - 1 and len(velocities) > 0:
-            velocities[-1] = vmax * (beta / np.pi) * 0.7
-            velocities.append(vmax * (beta / np.pi) * 0.7)
-            velocities.append(vmax * (beta / np.pi) * 0.7)
-            velocities.append(vmax * (beta / np.pi) * 0.7)
+        elif beta != 0 and beta < 2*np.pi / 3 and i != len(path) - 1:
+            velocities.append(vmax * multiplier * 0.8 * deccel_constant)
             flag = 1
-            flag1 = 1
+
+        elif beta != 0 and i != len(path) - 1 : #security
+            velocities.append(vmax * multiplier)
+            flag = 1
         else:
             velocities.append(vmax)
     # extra one
     velocities.append(vmax)
 
     return velocities
-
-
-"""
-def merge_velocities(max_velocities: list) -> list:
-     _, idx = np.unique(max_velocities, axis=0, return_index=True)
-     idxes = np.sort(idx)
-     return idxes
-"""
 
 
 class VelocityController:
@@ -123,22 +112,22 @@ class VelocityController:
 
     def __init__(self, path: list):
         self.path = path
-        self.L = 2.46
         self.Kw = 2.5
         self.Kv = 0.6
         self.Kpos = 0.5
         self.deadzone = 0.2
 
-        self.M = 1190
-        self.P0 = 500
-        self.en_multiplier = 1.3
-        self.avg_vel = 25
-        self.vmax = 3
+        self.M = M
+        self.P0 = P0
+        self.L = L
+        self.en_multiplier = multiplier
+        self.avg_vel = avg_velocity
+        self.vmax = max_velocity
 
         self.stretches = get_path_stretches(path)
         self.energy_budget = get_energy_budget(
             sum(self.stretches), self.avg_vel, self.P0, self.en_multiplier, self.M
-        )
+        ) 
         self.max_velocities = get_max_velocities(path, self.vmax)
         self.min_velocities = np.ones_like(self.max_velocities) * 1e-6
         self.ref_vels = self.optimize_velocities(
@@ -154,7 +143,7 @@ class VelocityController:
         self.error_integrator_ws = 0
         self.error_derivative_ws = 0
         self.last_error = 0
-        print(self.ref_vels)
+        print(f"Computed REF velocities: {self.ref_vels}")
 
     def following_trajectory(
         self, point: list, state: list, energy_used: float
@@ -174,7 +163,7 @@ class VelocityController:
         )
         pos_error_car_frame = car_frame_rotation @ pos_error
 
-        # If car very close to target point don't change steering
+        # If car very close to target point don't change steering (lasy point)
         if np.linalg.norm(pos_error_car_frame) < 1e-6:
             u_ws = 0
         else:
@@ -213,6 +202,8 @@ class VelocityController:
         if energy_used > self.energy_budget:  # the car ran out of energy
             vel_error = vel if vel > 0 else 0
             force_apply = -self.Kv * vel_error
+            print("Car ran out of fuel.")
+            quit()
 
         # print(f"BUDGET: {self.energy_budget}")
         # print(f"Energy used: {energy_used}")
