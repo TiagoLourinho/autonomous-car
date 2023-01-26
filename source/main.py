@@ -34,7 +34,7 @@ map = Map()
 # controller = MPC_Controller()
 
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
-control_signals = [[], []]
+control_signals = [[], []] #Keep the control signals to plot in the end
 
 
 def sensor_thread(ekf):
@@ -87,19 +87,17 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
     sleep(5)  # Load GUI
 
     global thread_shutdown
-    global control_signals
+    global control_signals  
     M = 1190
     P0 = 500
     positions = []
     energy_used = 0
-    energy_usage = []
-    j = -1
+    energy_usage = [] #Keep track of Energy spent
     already_filtered = 0
     for i, point in enumerate(oriented_path):
         while True:
             position = ekf.get_current_state()[:2]
             positions.append(position)
-            j += 1
             # Move to next point if close enough to the current one
             if (
                 np.linalg.norm(position - point[:2]) < 5 and i <= len(oriented_path) - 3
@@ -143,7 +141,7 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
             sleep(1 / FREQUENCY)
 
             # Energy usage
-            d = np.linalg.norm(position - positions[j - 1])
+            d = np.linalg.norm(position - positions[-2])
             v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
             energy_used += M * d * v + P0 * (1 / FREQUENCY)
             energy_usage.append(energy_used)
@@ -251,7 +249,7 @@ def start_gui(path, ekf):
         fig,
         lambda n: update_animation(n, state, ekf),
         frames=None,
-        interval=100,
+        interval=200,
         blit=True,
     )
 
@@ -364,6 +362,7 @@ def main():
         for t in threads.values():
             t.join()
 
+    #Plot the control Signals (V,ws)
     time = np.arange(0, len(control_signals[0]), 1)
     time = time * 1 / FREQUENCY
     plt.figure()

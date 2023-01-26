@@ -83,10 +83,7 @@ class MPC_Controller:
         mpc.bounds['upper','_u', 'V'] = 800
         mpc.bounds['upper','_u', 'ws'] = 800
 
-        #mpc.scaling['_x', 'x'] = 2
-        #mpc.scaling['_x', 'y'] = 2
-        #mpc.scaling['_x', 'theta'] = 2
-        #mpc.scaling['_x', 'phi'] = 2
+
 
         mpc.setup()
         return mpc

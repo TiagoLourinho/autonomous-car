@@ -182,12 +182,7 @@ class Map:
             ]
         )
 
-        # rotate the points by pi/2 radians and reflect them
-        # arr = self.rotate_points(arr, np.pi / 2)
-        # arr = self.reflect_points(arr)
 
-        # apperrently the pyproj library is rotating the points by around pi/60 radians
-        # arr = self.rotate_points(arr, np.pi / 60)
 
         return arr * np.array([self.scale_x, self.scale_y])
 
@@ -324,13 +319,7 @@ class Map:
 
         new_path = np.array(new_path)
 
-        # # Gets points on the road
-        # temp = np.array(
-        #     [
-        #         [step["location"]["latitude"], step["location"]["longitude"]]
-        #         for step in self.gmaps.nearest_roads(new_path)
-        #     ]
-        # )
+
 
         # Get rid of 2-way roads
         temp = []
@@ -354,22 +343,27 @@ class Map:
 
         return coords
     def round_path(self, path: np.array) -> np.array:
+        """
+            Rounds the corners of path and returns the new path
+        """
         points_to_remove = list()
-        for i,point in enumerate(path):
-            if i > 3 and i < len(path) -3:
-                upfront = path[i+1] - point
-                back = point - path[i-1]
-                if(abs(np.tensordot(upfront,back, axes=1)) <0.01):
-                    new_point = path[i-3] + path[i+3] - point
-                    vector =  (point-new_point)
-                    angle = np.arctan2(vector[1], vector[0])
-                    vector = np.linalg.norm(vector)*0.8* np.array([np.cos(angle),np.sin(angle)])
-                    desired_point = vector + new_point
-                    path[i][0] ,path[i][1] =  desired_point[0],desired_point[1]
-                    points_to_remove.append(i-1)
-                    points_to_remove.append(i+1)
-                    points_to_remove.append(i+2)
-                #path = path.reshape((-1,2))
+        for i,point in enumerate(path[3:-3],3):
+            if(abs(np.tensordot(path[i+1] - point, point - path[i-1], axes=1)) <0.01): #if the cross dot is small -> cos() is small -> angle between points is close to 90º 
+                rot_center = path[i-3] + path[i+3] - point # last point of a square formed by the sum of the point behind with the upfront vector
+
+                #vector between the two edges of square (one point is the edge of the curve (point) and the center of rotation (rot_center) )
+                vector =  (point-rot_center) 
+                angle = np.arctan2(vector[1], vector[0])
+                vector = np.linalg.norm(vector)*0.8* np.array([np.cos(angle),np.sin(angle)]) 
+
+                #obtain a point that is now closer to the center of rotation of the curve
+                desired_point = vector + rot_center
+                path[i][0] ,path[i][1] =  desired_point[0],desired_point[1]
+
+                # remove the points that were close to remove the edge
+                points_to_remove.append(i-1)
+                points_to_remove.append(i+1)
+                points_to_remove.append(i+2)
         path = np.delete(path,points_to_remove,axis=0)
         return path
 

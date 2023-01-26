@@ -152,9 +152,12 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     from scipy import signal
 
-    x_ref = np.arange(0, 50, 0.01)
 
     # Examples of trajectories
+
+
+    x_ref = np.arange(0, 50, 0.01)
+
     y_ref_traj = [
         np.cos(0.02 * x_ref),
         signal.square(2 * np.pi * 0.02 * x_ref),
