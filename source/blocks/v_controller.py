@@ -139,10 +139,6 @@ class VelocityController:
             self.P0,
             self.M,
         )
-
-        self.error_integrator_ws = 0
-        self.error_derivative_ws = 0
-        self.last_error = 0
         print(f"Computed REF velocities: {self.ref_vels}")
 
     def following_trajectory(
@@ -168,13 +164,7 @@ class VelocityController:
             u_ws = 0
         else:
             ws_error = np.arctan2(pos_error_car_frame[1], pos_error_car_frame[0]) - phi
-            self.error_derivative_ws = ws_error - self.last_error
-            self.error_integrator_ws = ws_error + self.last_error
-            u_ws = (
-                self.Kw * ws_error
-                + 0.2 * self.error_integrator_ws
-                + 0.06 * self.error_derivative_ws
-            )
+            u_ws = self.Kw * ws_error 
             self.last_error = ws_error
 
         # Retrieve current reference velocity
