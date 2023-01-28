@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 
 from utils import dms2deg
 
-# Simulation constants
-FREQUENCY = 100  # Hz
-SIMULATION = True
+# Main parameters
+FREQUENCY = 100  # Frequency operation in Hz
+SIMULATION = True  # If it is a simulation or is using real sensors and motors
 
 # Car constants
 M = 1190  # kg

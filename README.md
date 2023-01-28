@@ -13,7 +13,7 @@ This lab assignment aims at developing components for an autonomous car operatin
 
 ## Usage
 1. Install the required libraries: `pip install -r requirements.txt`
-2. Adjust the parameters in `constants.py` (for example frequency operation and whether it is just a simulation or is it working with real sensors and motors) 
+2. Adjust the parameters in `constants.py` (for example frequency operation and whether it is just a simulation or is it working with real sensors and motors, the default is 100 Hz and simulation mode) 
 3. Run the program: `python3 source/main.py`
 
 ## Folders
