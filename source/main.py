@@ -39,7 +39,7 @@ def sensor_thread(ekf):
 
     global thread_shutdown
 
-    sensors = Sensors(simulated=True)
+    sensors = Sensors(simulated=SIMULATION)
 
     # Because in simulation there's always data available, let's
     # define a limit to how frequently we can poll
@@ -429,6 +429,7 @@ def main():
         motor_controller.housekeeping()
 
     if show_results:
+        print("Showing controls signals used")
         # Plot the control Signals (V,ws)
         time = np.arange(0, len(control_signals[0]), 1)
         time = time * 1 / FREQUENCY
