@@ -78,7 +78,7 @@ def get_max_velocities(path: list, vmax: float) -> list:
             continue
 
         beta = stretch_angle(path[i - 2], path[i - 1], path[i])
-        if beta < np.pi / 6:
+        if beta < np.pi / 10:
             beta = 0
         betas.append(beta)
 
