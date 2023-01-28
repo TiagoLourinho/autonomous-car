@@ -192,7 +192,7 @@ def update_animation(n, state, ekf):
     state["artists"]["text"] = axes.text(
         0.45,
         0.1,
-        f"Energy {energy_used:.1f} J",
+        f"Energy {energy_used:.1f} / {energy_budget:.1f} J",
         transform=axes.transAxes,
         fontsize=14,
         verticalalignment="top",
@@ -393,6 +393,8 @@ def main():
     # controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.46)
     # controller = MPC_Controller()
     cont = VelocityController(path, Kw, Kv)
+    global energy_budget
+    energy_budget = cont.retrieve_energy_budget()
     motor_controller = MotorController(FREQUENCY, SIMULATION)
 
     # Set initial theta

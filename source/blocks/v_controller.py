@@ -197,6 +197,9 @@ class VelocityController:
 
         return np.array([u_v * np.cos(phi), u_ws])
 
+    def retrieve_energy_budget(self):
+        return self.energy_budget
+
     @staticmethod
     def optimize_velocities(
         path, stretches, energy_budget, max_velocities, min_velocities, P0, M

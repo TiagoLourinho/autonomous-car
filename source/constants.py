@@ -18,7 +18,7 @@ Kv = 0.2
 
 # Energy constants
 multiplier = 1.2
-avg_velocity = 20  #For budget calculation
+avg_velocity =5  #For budget calculation
 max_velocity = 8 #For energy-based optimization
 
 # Map constants

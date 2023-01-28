@@ -120,6 +120,6 @@ def update_energy_usage(
     if curr_idx >= 1:
         d = np.linalg.norm(true_position - positions[curr_idx - 1])
         v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
-        return multiplier * M * d * v + P0 * (1 / freq)
+        return 2.8 * (M * d * v + P0 * (1 / freq))
     else:
         return 0
