@@ -4,13 +4,16 @@ from typing import Optional
 import numpy as np
 import serial
 
+from . import map as Map
+MyTransformer = Map.MyTransformer
+
 
 class Sensors:
     """Sensor interface/model"""
 
     GPS_MEASUREMENT_STD = np.array((0.7, 0.7))
     ROTATION_MEASUREMENT_STD = np.array((0.01745, 0.01745, 0.01745))
-    ACCELERATION_MEASUREMENT_STD = np.array((0.01, 0.01, 0.01))
+    ACCELERATION_MEASUREMENT_STD = np.array((0.1, 0.1, 0.1))
     IMU_MEASUREMENT_STD = np.array((0.1, 0.1, 0.01745))
 
     def __init__(self, port: Optional[str] = None, simulated: bool = True):
@@ -79,7 +82,8 @@ class Sensors:
 
             gps_line = re.findall(r"g (-?\d+\.\d+) (-?\d+\.\d+)", line)
             if len(gps_line):
-                self._world_view[1] = np.array([*gps_line[0][:-1]])
+                parsed_gps = MyTransformer.transform(float(gps_line[0][0]), float(gps_line[0][1]))
+                self._world_view[1] = np.array([*parsed_gps])
 
         self._last_gps_measurement = self._world_view[1]
         self._last_imu_measurement = self._world_view[2]

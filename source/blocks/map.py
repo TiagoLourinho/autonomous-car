@@ -20,7 +20,8 @@ from constants import (
 class MyTransformer:
     """Coordinate and Reference Frame Transformer"""
 
-    def transform(self, lat, lon):
+    @staticmethod
+    def transform(lat, lon):
         """Transforms (lat, lon) ECEF into (e, n) ENU"""
         wgs84_geod = CRS.from_epsg(4326)
         wgs84_geoc = CRS.from_epsg(4978)
@@ -41,7 +42,8 @@ class MyTransformer:
             )[:2]
         )
 
-    def invtransform(self, e, n):
+    @staticmethod
+    def invtransform(e, n):
         """Transforms (e, n) ENU into (lat, lon) ECEF"""
         wgs84_geod = CRS.from_epsg(4326)
         wgs84_geoc = CRS.from_epsg(4978)
