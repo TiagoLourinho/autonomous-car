@@ -31,6 +31,7 @@ map = Map()
 
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 control_signals = [[], []]  # Keep the control signals to plot in the end
+last_collision_check = None
 
 # PUT THIS ENERGY FUNCTION IN AN APPROPRIATE PLACE
 def update_energy_usage(
@@ -143,7 +144,7 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
                 pose = ekf.get_current_state()[:6]
                 current_control = controller.following_trajectory(
-                    point, pose, energy_used, i-1
+                    point, pose, energy_used, i - 1
                 )
 
                 # PUT FILTERING INTO FUNCTION in appropriate place
@@ -203,6 +204,7 @@ def update_animation(n, state, ekf):
     """Updates the plot (used by FuncAnimation)"""
 
     global thread_shutdown
+    global last_collision_check
 
     axes = state["artists"]["axes"]
 
@@ -239,13 +241,17 @@ def update_animation(n, state, ekf):
         color="g",
     )
 
-    # Check if collision occurred
-    pos = estimated_position[:2] / np.array([map.scale_x, map.scale_y])
-    if not thread_shutdown and not map.verify_point(
-        map.transformer.invtransform(*pos), threshold=0.003
-    ):
-        print("Car collided, stopping simulation")
-        thread_shutdown = True
+    if last_collision_check is None or time.time() - last_collision_check > 1:
+
+        # Check if collision occurred
+        pos = estimated_position[:2] / np.array([map.scale_x, map.scale_y])
+        if not thread_shutdown and not map.verify_point(
+            map.transformer.invtransform(*pos), threshold=0.003
+        ):
+            print("Car collided, stopping simulation")
+            thread_shutdown = True
+
+        last_collision_check = time.time()
 
     return [
         state["artists"]["estimated_car_position"],
