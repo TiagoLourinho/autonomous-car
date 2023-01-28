@@ -237,7 +237,7 @@ def update_animation(n, state, ekf):
         # Check if collision occurred
         pos = estimated_position[:2] / np.array([map.scale_x, map.scale_y])
         if not thread_shutdown and not map.verify_point(
-            map.transformer.invtransform(*pos), threshold=0.005
+            map.transformer.invtransform(*pos), threshold=0.01
         ):
             print("Car collided, stopping simulation")
             thread_shutdown = True
