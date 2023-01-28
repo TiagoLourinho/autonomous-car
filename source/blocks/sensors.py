@@ -5,6 +5,7 @@ import numpy as np
 import serial
 
 from . import map as Map
+
 MyTransformer = Map.MyTransformer
 
 
@@ -75,17 +76,21 @@ class Sensors:
                 self._world_view[1] += (
                     (current_time - self._imu_timestamp)
                     * 1e-3
-                    * np.array([
-                        np.cos(self._world_view[0]) * acceleration_line[0][:-1],
-                        np.sin(self._world_view[0]) * acceleration_line[1][:-1],
-                    ])
+                    * np.array(
+                        [
+                            np.cos(self._world_view[0]) * acceleration_line[0][:-1],
+                            np.sin(self._world_view[0]) * acceleration_line[1][:-1],
+                        ]
+                    )
                 )
                 self._imu_timestamp = current_time
                 continue
 
             gps_line = re.findall(r"g (-?\d+\.\d+) (-?\d+\.\d+)", line)
             if len(gps_line):
-                parsed_gps = MyTransformer.transform(float(gps_line[0][0]), float(gps_line[0][1]))
+                parsed_gps = MyTransformer.transform(
+                    float(gps_line[0][0]), float(gps_line[0][1])
+                )
                 self._world_view[1] = np.array([*parsed_gps])
 
         self._last_gps_measurement = self._world_view[1]
