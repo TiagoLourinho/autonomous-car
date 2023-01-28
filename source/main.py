@@ -18,40 +18,18 @@ from blocks import (
 )
 
 from constants import *
+from utils import update_energy_usage
 
 # Thread related
 lock = Lock()
 thread_shutdown = False
 
-# Blocks
+# Global variables
 map = Map()
-
-# controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.46)
-# controller = MPC_Controller()
-
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
 control_signals = [[], []]  # Keep the control signals to plot in the end
 last_collision_check = None
-
 energy_used = 0
-
-# PUT THIS ENERGY FUNCTION IN AN APPROPRIATE PLACE
-def update_energy_usage(
-    curr_idx: int,
-    positions: list,
-    pose: np.array,
-    true_position: np.array,
-    freq: float,
-    M: float,
-    P0: float,
-    multiplier: float,
-):
-    if curr_idx >= 1:
-        d = np.linalg.norm(true_position - positions[curr_idx - 1])
-        v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
-        return multiplier * M * d * v + P0 * (1 / freq)
-    else:
-        return 0
 
 
 def sensor_thread(ekf):
@@ -194,12 +172,12 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
                 if thread_shutdown:
                     return
-        print("Path finished successfully.")
+        print("Destination reached, car parked")
 
     except Exception:
         print(traceback.format_exc())
     finally:
-        print("Destination reached, car parked")
+
         thread_shutdown = True
 
 
@@ -211,7 +189,15 @@ def update_animation(n, state, ekf):
 
     axes = state["artists"]["axes"]
 
-    state["artists"]["text"] = axes.text(0.45, 0.1, f"Energy {energy_used:.1f} J", transform=axes.transAxes, fontsize=14,verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    state["artists"]["text"] = axes.text(
+        0.45,
+        0.1,
+        f"Energy {energy_used:.1f} J",
+        transform=axes.transAxes,
+        fontsize=14,
+        verticalalignment="top",
+        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
+    )
 
     estimated_position = ekf.get_current_state()[:3]
 
@@ -251,7 +237,7 @@ def update_animation(n, state, ekf):
         # Check if collision occurred
         pos = estimated_position[:2] / np.array([map.scale_x, map.scale_y])
         if not thread_shutdown and not map.verify_point(
-            map.transformer.invtransform(*pos), threshold=0.003
+            map.transformer.invtransform(*pos), threshold=0.005
         ):
             print("Car collided, stopping simulation")
             thread_shutdown = True
@@ -268,7 +254,7 @@ def update_animation(n, state, ekf):
 
 
 def start_gui(path, ekf):
-    """Displays the path and the"""
+    """Displays the initial path"""
 
     state = {"artists": dict()}
     # image = plt.imread("images/map_improved.png")
@@ -326,6 +312,8 @@ def start_gui(path, ekf):
 
 
 def choose_path():
+    """Lets the user choose the path"""
+
     def onclick(event, fig, points):
         if points["start"] is None:
             points["start"] = (event.xdata, event.ydata)
@@ -395,14 +383,15 @@ def choose_path():
 
 def main():
     global thread_shutdown
+
     path = choose_path()
     path = map.round_path(path)
-    # Remove duplicate points
-    _, idx = np.unique(path, axis=0, return_index=True)
+    _, idx = np.unique(path, axis=0, return_index=True)  # Remove duplicate points
     path = path[np.sort(idx)]
+    oriented_path = map.orient_path(path)  # Add theta to points
 
-    oriented_path = map.orient_path(path)
-
+    # controller = Controller(qsi=1, w_n=10, v_ref=36, w_ref=4, h=0.01, L=2.46)
+    # controller = MPC_Controller()
     cont = VelocityController(path, Kw, Kv)
     motor_controller = MotorController(FREQUENCY, SIMULATION)
 

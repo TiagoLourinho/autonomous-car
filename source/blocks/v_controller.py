@@ -171,7 +171,7 @@ class VelocityController:
             self.last_error = ws_error
 
         # Retrieve current reference velocity
-        #curr_idx = np.where(self.path == point[0:2])[0][0] - 1
+        # curr_idx = np.where(self.path == point[0:2])[0][0] - 1
         ref_vel = self.ref_vels[curr_idx]
         # Compute velocity error
         vel_error = ref_vel - vel
@@ -243,13 +243,13 @@ class VelocityController:
         )
 
         if not optimal_vels.success:  # print some info if optimization failed
-            print(
+            """print(
                 f"No possible solution for the defined budget: {energy_budget:.2f}.\n The energy used will be : {E_used(optimal_vels.x):.2f}"
-            )
+            )"""
             quit()
-        print(
+        """ print(
             f"POSSIBLE solution for the defined budget: {energy_budget:.2f}.\n The approximated energy used is : {E_used(optimal_vels.x):.2f}."
-        )
+        ) """
 
         # append final velocity for final path
         velocities = np.block([optimal_vels.x, 0])
