@@ -143,7 +143,7 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
                 pose = ekf.get_current_state()[:6]
                 current_control = controller.following_trajectory(
-                    point, pose, energy_used
+                    point, pose, energy_used, i-1
                 )
 
                 # PUT FILTERING INTO FUNCTION in appropriate place
@@ -185,14 +185,13 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
                 current_energy = update_energy_usage(
                     j, positions, pose, true_position, FREQUENCY, M, P0, multiplier
                 )
-                # print(current_energy)
                 energy_used += current_energy
                 energy_usage.append(energy_used)
 
                 if thread_shutdown:
                     return
-    except KeyboardInterrupt:
-        pass
+        print("Path finished successfully.")
+
     except Exception:
         print(traceback.format_exc())
     finally:
@@ -392,7 +391,7 @@ def main():
 
     oriented_path = map.orient_path(path)
 
-    cont = VelocityController(path)
+    cont = VelocityController(path, Kw, Kv)
     motor_controller = MotorController(FREQUENCY, SIMULATION)
 
     # Set initial theta

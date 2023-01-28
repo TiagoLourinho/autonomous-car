@@ -140,7 +140,6 @@ class VelocityController:
             self.P0,
             self.M,
         )
-        print(f"Computed REF velocities: {self.ref_vels}")
 
     def get_full_path_vel_error(self):
         return self.full_vel_error
@@ -196,11 +195,6 @@ class VelocityController:
             print("Car ran out of fuel.")
             quit()
 
-        # print(f"BUDGET: {self.energy_budget}")
-        # print(f"Energy used: {energy_used}")
-        # print(f"VEL: {vel}")
-        # print(f"REF_VEL: {ref_vel}")
-
         return np.array([u_v * np.cos(phi), u_ws])
 
     @staticmethod
@@ -254,7 +248,7 @@ class VelocityController:
             )
             quit()
         print(
-            f"POSSIBLE solution for the defined budget: {energy_budget:.2f}.\n The approximated energy used is : {E_used(optimal_vels.x):.2f}"
+            f"POSSIBLE solution for the defined budget: {energy_budget:.2f}.\n The approximated energy used is : {E_used(optimal_vels.x):.2f}."
         )
 
         # append final velocity for final path
