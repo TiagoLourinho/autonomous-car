@@ -130,7 +130,7 @@ class Map:
 
         return np.array([rotation_matrix @ point for point in points])
 
-    def verify_point(self, point):
+    def verify_point(self, point, threshold=0.01):
         """Checks if the point is valid
 
         Parameters
@@ -158,7 +158,7 @@ class Map:
 
         # maybe pass to x, y so that we can better understand the distance limit
 
-        if distance < 0.01:
+        if distance < threshold:
             return True
         return False
 

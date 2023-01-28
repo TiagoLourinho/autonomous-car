@@ -54,7 +54,7 @@ def update_energy_usage(
 def sensor_thread(ekf):
     """Function to run in a thread, checking for new sensor data and updating EKF"""
 
-    sleep(5)  # Load GUI
+    sleep(2)  # Load GUI
 
     global thread_shutdown
 
@@ -96,6 +96,8 @@ def sensor_thread(ekf):
 
                 ekf.update(velocities, "imu")
                 last_imu_poll = time.time()
+    except KeyboardInterrupt:
+        pass
     except Exception:
         print(traceback.format_exc())
     finally:
@@ -105,7 +107,7 @@ def sensor_thread(ekf):
 def control_thread(oriented_path, ekf, controller, motor_controller):
     """Function to run in a thread, calculating the control signals"""
 
-    sleep(5)  # Load GUI
+    sleep(2)  # Load GUI
 
     global thread_shutdown
     global control_signals
@@ -183,21 +185,25 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
                 current_energy = update_energy_usage(
                     j, positions, pose, true_position, FREQUENCY, M, P0, multiplier
                 )
-                print(current_energy)
+                # print(current_energy)
                 energy_used += current_energy
                 energy_usage.append(energy_used)
 
                 if thread_shutdown:
                     return
-
+    except KeyboardInterrupt:
+        pass
     except Exception:
         print(traceback.format_exc())
     finally:
+        print("Destination reached, car parked")
         thread_shutdown = True
 
 
 def update_animation(n, state, ekf):
     """Updates the plot (used by FuncAnimation)"""
+
+    global thread_shutdown
 
     axes = state["artists"]["axes"]
 
@@ -233,6 +239,14 @@ def update_animation(n, state, ekf):
         head_length=3,
         color="g",
     )
+
+    # Check if collision occurred
+    pos = estimated_position[:2] / np.array([map.scale_x, map.scale_y])
+    if not thread_shutdown and not map.verify_point(
+        map.transformer.invtransform(*pos), threshold=0.003
+    ):
+        print("Car collided, stopping simulation")
+        thread_shutdown = True
 
     return [
         state["artists"]["estimated_car_position"],
@@ -397,9 +411,13 @@ def main():
     for t in threads.values():
         t.start()
 
+    show_results = True
     try:
         start_gui(path, ekf)
+    except KeyboardInterrupt:
+        show_results = False
     except Exception:
+        show_results = False
         print(traceback.format_exc())
     finally:
         thread_shutdown = True
@@ -407,20 +425,21 @@ def main():
             t.join()
         motor_controller.housekeeping()
 
-    # Plot the control Signals (V,ws)
-    time = np.arange(0, len(control_signals[0]), 1)
-    time = time * 1 / FREQUENCY
-    plt.figure()
-    plt.plot(time, control_signals[0])
-    plt.grid(True)
-    plt.xlabel(f"Time [s]")
-    plt.ylabel("V [m/s]")
-    plt.figure()
-    plt.plot(time, control_signals[1])
-    plt.grid(True)
-    plt.xlabel(f"Time [s]")
-    plt.ylabel(r"$\omega_{s}$ [rad/s]")
-    plt.show()
+    if show_results:
+        # Plot the control Signals (V,ws)
+        time = np.arange(0, len(control_signals[0]), 1)
+        time = time * 1 / FREQUENCY
+        plt.figure()
+        plt.plot(time, control_signals[0])
+        plt.grid(True)
+        plt.xlabel(f"Time [s]")
+        plt.ylabel("V [m/s]")
+        plt.figure()
+        plt.plot(time, control_signals[1])
+        plt.grid(True)
+        plt.xlabel(f"Time [s]")
+        plt.ylabel(r"$\omega_{s}$ [rad/s]")
+        plt.show()
 
 
 if __name__ == "__main__":
