@@ -3,21 +3,21 @@ import matplotlib.pyplot as plt
 
 from utils import dms2deg
 
-#Simulation constants
+# Simulation constants
 FREQUENCY = 100  # Hz
 SIMULATION = True
 
-#Car constants
-M = 1190 # kg
-P0 = 500 # W
-L = 2.46 # m
+# Car constants
+M = 1190  # kg
+P0 = 500  # W
+L = 2.46  # m
 
-#Energy constants
+# Energy constants
 multiplier = 1.2
-avg_velocity = 10  #For budget calculation
-max_velocity = 7 #For energy-based optimization
+avg_velocity = 10  # For budget calculation
+max_velocity = 7  # For energy-based optimization
 
-#Map constants
+# Map constants
 GMAPS_KEY = "AIzaSyAE3mAAR3DtUpmMY17pS18a7LeSzIbZXFI"  # Google Maps API key
 
 ORIGIN = np.array(
@@ -39,6 +39,3 @@ BOTTOM_RIGHT_CORNER = np.array(
 
 IMAGE_HEIGHT = plt.imread("images/ist.jpeg").shape[0]  # Height of map image in pixels
 IMAGE_WIDTH = plt.imread("images/ist.jpeg").shape[1]  # Width of map image in pixels
-
-
-

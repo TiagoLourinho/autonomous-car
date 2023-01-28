@@ -33,7 +33,8 @@ class Controller:
         self.ki = (w_n**2 - w_ref**2) / abs(self.v_ref)
         self.h = h
         self.L = L
-        self.last_error = np.zeros((3,1))
+        self.last_error = np.zeros((3, 1))
+
     def print_parameters(self):
         """
         Print parameters of the controller
@@ -65,8 +66,8 @@ class Controller:
             -position : next position
             -np.array([v,ws]): control signal
         """
-        error = np.zeros((3,1))
-        w_ref = np.sin(ref[3])*self.v_ref/self.L
+        error = np.zeros((3, 1))
+        w_ref = np.sin(ref[3]) * self.v_ref / self.L
         world_error = ref[:-1] - position[:-1]
         bot_error = np.matmul(
             np.array(
@@ -78,17 +79,27 @@ class Controller:
             ),
             world_error,
         )
-        bot_error = bot_error[:,np.newaxis]
-        u = np.array([-self.kv*self.last_error[0], -self.ki*self.last_error[1]-self.ks*self.last_error[2]])
-        error_dynamics =  np.array([[0, w_ref, 0],[ -w_ref, 0, self.v_ref*np.cos(ref[3])], [0, 0 ,0]])@bot_error + np.array([[np.cos(ref[3]) ,0], [0 ,0], [0, 1]])@u
-        error = bot_error + self.h*error_dynamics
+        bot_error = bot_error[:, np.newaxis]
+        u = np.array(
+            [
+                -self.kv * self.last_error[0],
+                -self.ki * self.last_error[1] - self.ks * self.last_error[2],
+            ]
+        )
+        error_dynamics = (
+            np.array(
+                [[0, w_ref, 0], [-w_ref, 0, self.v_ref * np.cos(ref[3])], [0, 0, 0]]
+            )
+            @ bot_error
+            + np.array([[np.cos(ref[3]), 0], [0, 0], [0, 1]]) @ u
+        )
+        error = bot_error + self.h * error_dynamics
         v = self.kv * error[0]
-        if v > 10: v = [10]
+        if v > 10:
+            v = [10]
         ws = self.ki * error[1] + self.ks * error[2]
         self.last_error = error
         return np.array([v, ws]).reshape((2,))
-
- 
 
     def following_reference(self, ref: np.array, num_points: int = None) -> np.array:
         """
@@ -152,9 +163,7 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     from scipy import signal
 
-
     # Examples of trajectories
-
 
     x_ref = np.arange(0, 50, 0.01)
 

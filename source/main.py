@@ -30,10 +30,19 @@ map = Map()
 # controller = MPC_Controller()
 
 origin = map.get_coordinates(*ORIGIN).reshape((2,))
-control_signals = [[], []] #Keep the control signals to plot in the end
+control_signals = [[], []]  # Keep the control signals to plot in the end
 
-#PUT THIS ENERGY FUNCTION IN AN APPROPRIATE PLACE
-def update_energy_usage(curr_idx: int, positions: list, pose: np.array, true_position: np.array, freq: float, M: float, P0: float, multiplier: float):
+# PUT THIS ENERGY FUNCTION IN AN APPROPRIATE PLACE
+def update_energy_usage(
+    curr_idx: int,
+    positions: list,
+    pose: np.array,
+    true_position: np.array,
+    freq: float,
+    M: float,
+    P0: float,
+    multiplier: float,
+):
     if curr_idx >= 1:
         d = np.linalg.norm(true_position - positions[curr_idx - 1])
         v = np.sqrt(pose[4] ** 2 + pose[5] ** 2)
@@ -99,7 +108,7 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
     sleep(5)  # Load GUI
 
     global thread_shutdown
-    global control_signals  
+    global control_signals
     M = 1190
     P0 = 500
     positions = []
@@ -113,10 +122,10 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
             while True:
                 position = ekf.get_current_state()[:2]
 
-                #Retrieve true position for energy calculation purpose only
+                # Retrieve true position for energy calculation purpose only
                 true_position = ekf.get_predicted_state()[:2]
                 positions.append(true_position)
-                j+=1
+                j += 1
 
                 # Move to next point if close enough to the current one
                 if (
@@ -135,7 +144,7 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
                     point, pose, energy_used
                 )
 
-                #PUT FILTERING INTO FUNCTION in appropriate place
+                # PUT FILTERING INTO FUNCTION in appropriate place
                 # Filtering (Max steering angle)
                 phi = pose[3]
                 omega = current_control[1]
@@ -171,7 +180,9 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
                 sleep(1 / FREQUENCY)
 
                 # Energy usage
-                current_energy = update_energy_usage(j, positions, pose, true_position, FREQUENCY, M, P0, multiplier)
+                current_energy = update_energy_usage(
+                    j, positions, pose, true_position, FREQUENCY, M, P0, multiplier
+                )
                 print(current_energy)
                 energy_used += current_energy
                 energy_usage.append(energy_used)
@@ -396,7 +407,7 @@ def main():
             t.join()
         motor_controller.housekeeping()
 
-    #Plot the control Signals (V,ws)
+    # Plot the control Signals (V,ws)
     time = np.arange(0, len(control_signals[0]), 1)
     time = time * 1 / FREQUENCY
     plt.figure()

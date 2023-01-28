@@ -129,7 +129,7 @@ class Map:
         )
 
         return np.array([rotation_matrix @ point for point in points])
-    
+
     def verify_point(self, point):
         """Checks if the point is valid
 
@@ -146,7 +146,12 @@ class Map:
             True if the point is within the map, False otherwise
         """
         new_point = self.gmaps.nearest_roads(point)
-        new_point = np.array([new_point[0]["location"]["latitude"], new_point[0]["location"]["longitude"]])
+        new_point = np.array(
+            [
+                new_point[0]["location"]["latitude"],
+                new_point[0]["location"]["longitude"],
+            ]
+        )
 
         # disance between the point and the nearest road
         distance = haversine(point, new_point)
@@ -181,8 +186,6 @@ class Map:
                 # - self.bottom_left_coord
             ]
         )
-
-
 
         return arr * np.array([self.scale_x, self.scale_y])
 
@@ -319,13 +322,14 @@ class Map:
 
         new_path = np.array(new_path)
 
-
-
         # Get rid of 2-way roads
         temp = []
         originalIndex = -1
         segment_size = 100
-        path_segments = [new_path[i:i + segment_size] for i in range(0, len(new_path), segment_size)]
+        path_segments = [
+            new_path[i : i + segment_size]
+            for i in range(0, len(new_path), segment_size)
+        ]
         for segment in path_segments:
             segment_result = self.gmaps.nearest_roads(segment)
             for step in segment_result:
@@ -342,29 +346,39 @@ class Map:
             coords[i] = self.get_coordinates(temp[i][0], temp[i][1])
 
         return coords
+
     def round_path(self, path: np.array) -> np.array:
         """
-            Rounds the corners of path and returns the new path
+        Rounds the corners of path and returns the new path
         """
         points_to_remove = list()
-        for i,point in enumerate(path[3:-3],3):
-            if(abs(np.tensordot(path[i+1] - point, point - path[i-1], axes=1)) <0.01): #if the cross dot is small -> cos() is small -> angle between points is close to 90º 
-                rot_center = path[i-3] + path[i+3] - point # last point of a square formed by the sum of the point behind with the upfront vector
+        for i, point in enumerate(path[3:-3], 3):
+            if (
+                abs(np.tensordot(path[i + 1] - point, point - path[i - 1], axes=1))
+                < 0.01
+            ):  # if the cross dot is small -> cos() is small -> angle between points is close to 90º
+                rot_center = (
+                    path[i - 3] + path[i + 3] - point
+                )  # last point of a square formed by the sum of the point behind with the upfront vector
 
-                #vector between the two edges of square (one point is the edge of the curve (point) and the center of rotation (rot_center) )
-                vector =  (point-rot_center) 
+                # vector between the two edges of square (one point is the edge of the curve (point) and the center of rotation (rot_center) )
+                vector = point - rot_center
                 angle = np.arctan2(vector[1], vector[0])
-                vector = np.linalg.norm(vector)*0.8* np.array([np.cos(angle),np.sin(angle)]) 
+                vector = (
+                    np.linalg.norm(vector)
+                    * 0.8
+                    * np.array([np.cos(angle), np.sin(angle)])
+                )
 
-                #obtain a point that is now closer to the center of rotation of the curve
+                # obtain a point that is now closer to the center of rotation of the curve
                 desired_point = vector + rot_center
-                path[i][0] ,path[i][1] =  desired_point[0],desired_point[1]
+                path[i][0], path[i][1] = desired_point[0], desired_point[1]
 
                 # remove the points that were close to remove the edge
-                points_to_remove.append(i-1)
-                points_to_remove.append(i+1)
-                points_to_remove.append(i+2)
-        path = np.delete(path,points_to_remove,axis=0)
+                points_to_remove.append(i - 1)
+                points_to_remove.append(i + 1)
+                points_to_remove.append(i + 2)
+        path = np.delete(path, points_to_remove, axis=0)
         return path
 
     def orient_path(self, path: np.array) -> np.array:

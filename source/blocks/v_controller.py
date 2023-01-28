@@ -3,7 +3,8 @@ import scipy.optimize
 import scipy.signal
 
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'source'))
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "source"))
 
 from constants import *
 
@@ -59,12 +60,12 @@ def get_max_velocities(path: list, vmax: float) -> list:
     deccel_constant = 1.4
     velocities = []
     betas = []
-    i=0
+    i = 0
     while i < len(path) - 1:
         i += 1
-        if i <= 1 :
+        if i <= 1:
             continue
-        
+
         if flag:
             flag = 0
             for k in range(len_deceleration):
@@ -82,7 +83,7 @@ def get_max_velocities(path: list, vmax: float) -> list:
         betas.append(beta)
 
         if beta != 0:
-            multiplier = 1/beta * np.pi/6 * 0.8
+            multiplier = 1 / beta * np.pi / 6 * 0.8
 
         if beta != 0 and len(velocities) == 0:
             velocities.append(vmax * multiplier)
@@ -90,11 +91,11 @@ def get_max_velocities(path: list, vmax: float) -> list:
             velocities.append(vmax * multiplier * deccel_constant)
             flag = 1
 
-        elif beta != 0 and beta < 2*np.pi / 3 and i != len(path) - 1:
+        elif beta != 0 and beta < 2 * np.pi / 3 and i != len(path) - 1:
             velocities.append(vmax * multiplier * 0.8 * deccel_constant)
             flag = 1
 
-        elif beta != 0 and i != len(path) - 1 : #security
+        elif beta != 0 and i != len(path) - 1:  # security
             velocities.append(vmax * multiplier)
             flag = 1
         else:
@@ -127,7 +128,7 @@ class VelocityController:
         self.stretches = get_path_stretches(path)
         self.energy_budget = get_energy_budget(
             sum(self.stretches), self.avg_vel, self.P0, self.en_multiplier, self.M
-        ) 
+        )
         self.max_velocities = get_max_velocities(path, self.vmax)
         self.min_velocities = np.ones_like(self.max_velocities) * 1e-6
         self.ref_vels = self.optimize_velocities(
@@ -164,7 +165,7 @@ class VelocityController:
             u_ws = 0
         else:
             ws_error = np.arctan2(pos_error_car_frame[1], pos_error_car_frame[0]) - phi
-            u_ws = self.Kw * ws_error 
+            u_ws = self.Kw * ws_error
             self.last_error = ws_error
 
         # Retrieve current reference velocity
