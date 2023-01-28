@@ -430,14 +430,14 @@ def main(path, oriented_path, kw, kv, energies, max_steering, avg_vel_error):
     plt.grid(True)
     plt.xlabel(f"Time [s]")
     plt.ylabel("V [m/s]")
-    plt.savefig(f"source/ks_simulations/Vs/kw{kw}_kv{kv}.png")
+    plt.savefig(f"source/simulations/Vs/kw{kw}_kv{kv}.png")
     plt.figure()
     plt.plot(time, control_signals[1])
     plt.grid(True)
     plt.xlabel(f"Time [s]")
     plt.ylabel(r"$\omega_{s}$ [rad/s]")
     #plt.show()
-    plt.savefig(f"source/ks_simulations/ws/kw{kw}_kv{kv}.png")
+    plt.savefig(f"source/simulations/ws/kw{kw}_kv{kv}.png")
 
     
 
