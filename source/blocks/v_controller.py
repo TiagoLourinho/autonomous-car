@@ -143,7 +143,7 @@ class VelocityController:
             self.P0,
             self.M,
         )
-        print(self.ref_vels)
+        # print(self.ref_vels)
 
     def get_full_path_vel_error(self):
         return self.full_vel_error
@@ -253,7 +253,7 @@ class VelocityController:
             """print(
                 f"No possible solution for the defined budget: {energy_budget:.2f}.\n The energy used will be : {E_used(optimal_vels.x):.2f}"
             )"""
-            #quit()
+            # quit()
         """ print(
             f"POSSIBLE solution for the defined budget: {energy_budget:.2f}.\n The approximated energy used is : {E_used(optimal_vels.x):.2f}."
         ) """

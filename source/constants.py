@@ -12,17 +12,17 @@ M = 1190  # kg
 P0 = 500  # W
 L = 2.46  # m
 
-#Controller constants
+# Controller constants
 Kw = 0.45
 Kv = 0.9
 
 # Energy constants
 multiplier = 1.3
-avg_velocity = 1.9  #For budget calculation
-max_velocity = 2 #For energy-based optimization
+avg_velocity = 1.9  # For budget calculation
+max_velocity = 2  # For energy-based optimization
 
 # Map constants
-GMAPS_KEY = "AIzaSyAE3mAAR3DtUpmMY17pS18a7LeSzIbZXFI"  # Google Maps API key
+GMAPS_KEY = "AIzaSyCutz1OO76IRyBg7wkOQk9LfLdakYZcm7o"  # Google Maps API key
 
 ORIGIN = np.array(
     [38.73761835946306, -9.138958625673242]
