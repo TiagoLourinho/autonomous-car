@@ -373,9 +373,9 @@ def choose_path():
     points["end"] = map.transformer.invtransform(points["end"][0], points["end"][1])
 
     if map.verify_point(points["start"]) and map.verify_point(points["end"]):
-        print("Valid path")
+        print("The chosen path is valid")
     else:
-        print("Invalid path")
+        print("The chosen path is not valid")
         exit(1)
 
     return map.get_path(points["start"], points["end"])
@@ -410,6 +410,7 @@ def main():
         ),
     }
 
+    print("Starting threads")
     for t in threads.values():
         t.start()
 
