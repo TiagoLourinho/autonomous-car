@@ -111,12 +111,11 @@ class VelocityController:
     Calculates reference velocities according to a energy budget and computes control signals to apply to the car
     """
 
-    def __init__(self, path: list):
+    def __init__(self, path: list, Kw: float, Kv: float):
         self.path = path
-        self.Kw = 2.5
-        self.Kv = 0.6
-        self.Kpos = 0.5
-        self.deadzone = 0.2
+        self.Kw = Kw
+        self.Kv = Kv
+        self.Kpos = 1.5
 
         self.M = M
         self.P0 = P0
@@ -124,6 +123,7 @@ class VelocityController:
         self.en_multiplier = multiplier
         self.avg_vel = avg_velocity
         self.vmax = max_velocity
+        self.full_vel_error = 0
 
         self.stretches = get_path_stretches(path)
         self.energy_budget = get_energy_budget(
@@ -142,8 +142,11 @@ class VelocityController:
         )
         print(f"Computed REF velocities: {self.ref_vels}")
 
+    def get_full_path_vel_error(self):
+        return self.full_vel_error
+
     def following_trajectory(
-        self, point: list, state: list, energy_used: float
+        self, point: list, state: list, energy_used: float, curr_idx: int
     ) -> list:
         # Retrieve car state and velocities
         theta = state[2]
@@ -169,19 +172,16 @@ class VelocityController:
             self.last_error = ws_error
 
         # Retrieve current reference velocity
-        curr_idx = np.where(self.path == point[0:2])[0][0] - 1
+        #curr_idx = np.where(self.path == point[0:2])[0][0] - 1
         ref_vel = self.ref_vels[curr_idx]
         # Compute velocity error
         vel_error = ref_vel - vel
+        self.full_vel_error += vel_error
 
         if curr_idx != len(self.stretches) - 1:
-            if vel_error >= self.deadzone:
-                u_v = self.Kv * vel_error if energy_used < self.energy_budget else 0
-            else:
-                # Implement deadzone?
-                u_v = self.Kv * vel_error if energy_used < self.energy_budget else 0
+            u_v = self.Kv * vel_error if energy_used < self.energy_budget else 0
         else:
-            # position controller
+            # position controller for parking the car
             x_error_car_frame = pos_error_car_frame[0]
             ref_vel = self.Kpos * x_error_car_frame
             vel_error = ref_vel - vel
@@ -254,7 +254,7 @@ class VelocityController:
             )
             quit()
         print(
-            f"POSSIBLE solution for the defined budget: {energy_budget:.2f}.\n The energy used will be : {E_used(optimal_vels.x):.2f}"
+            f"POSSIBLE solution for the defined budget: {energy_budget:.2f}.\n The approximated energy used is : {E_used(optimal_vels.x):.2f}"
         )
 
         # append final velocity for final path
