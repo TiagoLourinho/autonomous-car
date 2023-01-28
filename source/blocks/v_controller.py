@@ -50,7 +50,7 @@ def stretch_angle(point0: list, point1: list, point2: list) -> float:
     return beta_i
 
 
-def get_max_velocities(path: list, vmax: float) -> list:
+def get_max_velocities(path: list, vmax: float, stretches: list) -> list:
     """
     Computes maximum velocity allowed for each stretch, based on if the path between 2 consecutive strethes
     is linear or a curve. If its a curve, the tighter it is the lower the maximum allowed velocity is
@@ -101,7 +101,10 @@ def get_max_velocities(path: list, vmax: float) -> list:
         else:
             velocities.append(vmax)
     # extra one
-    velocities.append(vmax)
+    while len(velocities) < len(stretches):
+        velocities.append(vmax)
+    while len(velocities) > len(stretches):
+        velocities.pop()
 
     return velocities
 
@@ -129,7 +132,7 @@ class VelocityController:
         self.energy_budget = get_energy_budget(
             sum(self.stretches), self.avg_vel, self.P0, self.en_multiplier, self.M
         )
-        self.max_velocities = get_max_velocities(path, self.vmax)
+        self.max_velocities = get_max_velocities(path, self.vmax, self.stretches)
         self.min_velocities = np.ones_like(self.max_velocities) * 1e-6
         self.ref_vels = self.optimize_velocities(
             self.path,
@@ -249,7 +252,7 @@ class VelocityController:
             """print(
                 f"No possible solution for the defined budget: {energy_budget:.2f}.\n The energy used will be : {E_used(optimal_vels.x):.2f}"
             )"""
-            quit()
+            #quit()
         """ print(
             f"POSSIBLE solution for the defined budget: {energy_budget:.2f}.\n The approximated energy used is : {E_used(optimal_vels.x):.2f}."
         ) """
@@ -260,7 +263,6 @@ class VelocityController:
 
 
 def main():
-    # cont = VelocityController(path)
     pass
 
 
