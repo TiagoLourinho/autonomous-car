@@ -64,13 +64,13 @@ class EKF:
                         self.time_step
                         * np.cos(self.predicted[2])
                         * np.cos(self.predicted[3]),
-                        0
+                        0,
                     ],
                     [
                         self.time_step
                         * np.sin(self.predicted[2])
                         * np.cos(self.predicted[3]),
-                        0
+                        0,
                     ],
                     [self.time_step * np.sin(self.predicted[3]) / self.car_L, 0],
                     [0, self.time_step],
@@ -196,27 +196,27 @@ class EKF:
         """Returns the current state estimate"""
         with self.lock:
 
-            return self.state
+            return self.state.copy()
 
     def get_predicted_state(self) -> np.array:
         """Returns the predicted state (only using the model, used in simulation as the real pose)"""
         with self.lock:
 
-            return self.predicted
+            return self.predicted.copy()
 
     def get_current_cov(self) -> np.array:
         """Returns the current covariance estimate"""
 
         with self.lock:
 
-            return self.cov
+            return self.cov.copy()
 
     def get_max_steering_angle(self) -> float:
         """Returns the max steering angle"""
 
         with self.lock:
 
-            return self.max_wheel_angle
+            return self.max_wheel_angle.copy()
 
     def set_state(self, index, value) -> None:
         """Changes the state"""
