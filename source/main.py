@@ -33,6 +33,8 @@ origin = map.get_coordinates(*ORIGIN).reshape((2,))
 control_signals = [[], []]  # Keep the control signals to plot in the end
 last_collision_check = None
 
+energy_used = 0
+
 # PUT THIS ENERGY FUNCTION IN AN APPROPRIATE PLACE
 def update_energy_usage(
     curr_idx: int,
@@ -112,6 +114,7 @@ def control_thread(oriented_path, ekf, controller, motor_controller):
 
     global thread_shutdown
     global control_signals
+    global energy_used
     M = 1190
     P0 = 500
     positions = []
@@ -208,6 +211,8 @@ def update_animation(n, state, ekf):
 
     axes = state["artists"]["axes"]
 
+    state["artists"]["text"] = axes.text(0.45, 0.1, f"Energy {energy_used:.1f} J", transform=axes.transAxes, fontsize=14,verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+
     estimated_position = ekf.get_current_state()[:3]
 
     real_position = ekf.get_predicted_state()[:3]
@@ -258,6 +263,7 @@ def update_animation(n, state, ekf):
         state["artists"]["estimated_car_theta"],
         state["artists"]["real_car_position"],
         state["artists"]["real_car_theta"],
+        state["artists"]["text"],
     ]
 
 
