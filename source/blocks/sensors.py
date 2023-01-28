@@ -75,7 +75,10 @@ class Sensors:
                 self._world_view[1] += (
                     (current_time - self._imu_timestamp)
                     * 1e-3
-                    * np.array([float(a) for a in acceleration_line[0][-1]])
+                    * np.array([
+                        np.cos(self._world_view[0]) * acceleration_line[0][:-1],
+                        np.sin(self._world_view[0]) * acceleration_line[1][:-1],
+                    ])
                 )
                 self._imu_timestamp = current_time
                 continue
