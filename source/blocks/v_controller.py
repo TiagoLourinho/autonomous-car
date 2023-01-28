@@ -78,7 +78,7 @@ def get_max_velocities(path: list, vmax: float, stretches: list) -> list:
             continue
 
         beta = stretch_angle(path[i - 2], path[i - 1], path[i])
-        if beta < np.pi / 10:
+        if beta < np.pi / 6:
             beta = 0
         betas.append(beta)
 
@@ -118,7 +118,7 @@ class VelocityController:
         self.path = path
         self.Kw = Kw
         self.Kv = Kv
-        self.Kpos = 1.5
+        self.Kpos = 0.8
 
         self.M = M
         self.P0 = P0
@@ -143,6 +143,7 @@ class VelocityController:
             self.P0,
             self.M,
         )
+        print(self.ref_vels)
 
     def get_full_path_vel_error(self):
         return self.full_vel_error

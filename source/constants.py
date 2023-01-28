@@ -14,12 +14,12 @@ L = 2.46  # m
 
 #Controller constants
 Kw = 0.45
-Kv = 0.2
+Kv = 0.9
 
 # Energy constants
-multiplier = 1.2
-avg_velocity =5  #For budget calculation
-max_velocity = 8 #For energy-based optimization
+multiplier = 1.3
+avg_velocity = 1.9  #For budget calculation
+max_velocity = 2 #For energy-based optimization
 
 # Map constants
 GMAPS_KEY = "AIzaSyAE3mAAR3DtUpmMY17pS18a7LeSzIbZXFI"  # Google Maps API key
