@@ -10,6 +10,7 @@
 import serial
 import time
 import numpy as np
+import os
 from ctypes import *
 
 
@@ -22,7 +23,7 @@ class MotorController:
 
         if not self.simulated:
             # EPOS Command Library path
-            self.path = ".\EposCmd64.dll"
+            self.path = os.path.join("windows_dlls", "EposCmd64.dll")
 
             # Load library
             cdll.LoadLibrary(self.path)

@@ -22,3 +22,10 @@ This lab assignment aims at developing components for an autonomous car operatin
 - `imu_gps/` - Handles communication with real sensors
 - `source/` - Main system code
 - `tests/` - Tests done to modules of the system
+
+
+# Example
+
+A simulation example in the IST campus:
+
+![A simulation example in the IST campus](/images/example.png "IST")
