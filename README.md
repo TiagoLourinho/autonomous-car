@@ -25,7 +25,6 @@ This project aims at developing components for an autonomous car operating insid
 
 
 # Example
-
 A simulation example in the IST campus:
 
 ![A simulation example in the IST campus](/images/example.png "IST")
