@@ -22,7 +22,7 @@ avg_velocity = 1.9  # For budget calculation
 max_velocity = 2  # For energy-based optimization
 
 # Map constants
-GMAPS_KEY = "AIzaSyCutz1OO76IRyBg7wkOQk9LfLdakYZcm7o"  # Google Maps API key
+GMAPS_KEY = "XXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # Google Maps API key
 
 ORIGIN = np.array(
     [38.73761835946306, -9.138958625673242]
