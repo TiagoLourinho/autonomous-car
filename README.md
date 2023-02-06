@@ -1,7 +1,7 @@
-# Robotics 2nd lab assignment - Autonomous Car 
+# Autonomous Car 
 
 ## Goal
-This lab assignment aims at developing components for an autonomous car operating inside IST Alameda campus. 
+This project aims at developing components for an autonomous car operating inside IST Alameda campus. 
 
 ## Authors
 - Francisco Rodrigues
